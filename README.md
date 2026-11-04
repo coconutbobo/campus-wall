@@ -21,7 +21,6 @@
 - 前端：Vue 3 + Vite + Vue Router + Axios
 - 后端：Java 17 + Spring Boot 3 + Spring Data JPA + Spring Security + JWT
 - 数据库：MySQL 8
-- 本地运行：先本地跑通，后面再部署到云
 
 ## 目录结构
 

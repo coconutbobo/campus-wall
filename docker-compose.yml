@@ -1,0 +1,16 @@
+# 校园墙项目：校园墙项目文件：docker-compose.yml。
+services:
+  db:
+    image: mysql:8.0
+    container_name: campus-wall-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-local-only}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campus_wall}
+      MYSQL_USER: ${MYSQL_USER:-campus_wall}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-local-only}
+    ports:
+      - "3306:3306"
+    volumes:
+      - campus-wall-db-data:/var/lib/mysql
+volumes:
+  campus-wall-db-data:

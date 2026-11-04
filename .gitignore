@@ -1,0 +1,13 @@
+.env
+.env.local
+backend/src/main/resources/application-local.yml
+backend/uploads/
+frontend/uploads/
+uploads/
+target/
+node_modules/
+dist/
+.DS_Store
+*.log
+.idea/
+.vscode/

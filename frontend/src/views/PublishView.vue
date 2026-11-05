@@ -43,6 +43,7 @@
     <label>图片</label>
     <input type="file" accept="image/*" multiple @change="onFiles" />
     <label><input type="checkbox" v-model="form.anonymous" style="width:auto;" /> 匿名发布，显示为匿名用户</label>
+    <p>匿名只是展示方式：其他人只看到匿名用户，不会看到你的昵称和公开 ID，但管理员在处理违规时仍能追责；正文里不要写手机号、身份证号，系统会直接拦截这类内容。</p>
     <button @click="submit">发布</button>
     <p>{{ message }}</p>
   </div>

@@ -17,3 +17,8 @@ app:
     expiration-ms: 86400000
   upload:
     dir: ${UPLOAD_DIR:uploads}
+  # 频率限制：每人每小时最多发 10 条帖子、30 条评论，同一网络地址哈希每小时最多发 50 条帖子。
+  limits:
+    posts-per-hour: 10
+    comments-per-hour: 30
+    posts-per-hour-per-ip: 50

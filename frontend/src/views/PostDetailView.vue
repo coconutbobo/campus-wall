@@ -15,12 +15,14 @@
         <button @click="like">点赞 {{ post.likeCount }}</button>
         <button @click="favorite">收藏 {{ post.favoriteCount }}</button>
         <button @click="report">举报</button>
+        <button v-if="post.isMine" @click="editPost">编辑我的帖子</button>
       </div>
+      <p v-if="post.isMine">这是你自己的帖子，匿名也不会让你失去编辑和删除的权利。</p>
     </div>
     <div class="card">
       <h3>评论</h3>
       <div v-for="comment in post.comments" :key="comment.id">
-        <p><strong>{{ comment.displayName }}</strong>：{{ comment.content }}</p>
+        <p><strong>{{ comment.displayName }}</strong>：{{ comment.content }} <button @click="reportComment(comment.id)">举报评论</button></p>
       </div>
       <textarea v-model="commentText" placeholder="写下你的评论"></textarea>
       <label><input type="checkbox" v-model="commentAnonymous" style="width:auto;" /> 匿名评论</label>
@@ -32,7 +34,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { addComment, getPost, reportPost, toggleFavorite, toggleLike } from '../api/posts.js'
+import { addComment, editPost as editPostApi, getPost, reportComment as reportCommentApi, reportPost, toggleFavorite, toggleLike } from '../api/posts.js'
 
 const route = useRoute()
 const post = ref(null)
@@ -58,6 +60,23 @@ async function report() {
   const reason = prompt('请填写举报原因')
   if (reason) {
     await reportPost(route.params.id, reason)
+    alert('已提交举报')
+  }
+}
+
+async function editPost() {
+  const title = prompt('新标题', post.value.title)
+  if (title === null) return
+  const content = prompt('新内容', post.value.content)
+  if (content === null) return
+  await editPostApi(route.params.id, { title, content })
+  await load()
+}
+
+async function reportComment(commentId) {
+  const reason = prompt('请填写举报评论的原因')
+  if (reason) {
+    await reportCommentApi(commentId, reason)
     alert('已提交举报')
   }
 }

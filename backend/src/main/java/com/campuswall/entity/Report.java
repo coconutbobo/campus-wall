@@ -1,7 +1,8 @@
-// 校园墙项目
-// 数据库实体：对应一张表，字段和数据库设计文档里的 Report 保持一致。
 package com.campuswall.entity;
 
+// 举报实体：既能举报帖子，也能举报评论，举报时要写原因。
+// 举报评论时，被举报评论所属的帖子也会一并保存，方便管理员定位上下文。
+// 举报人信息只保留在内部，公开接口不返回举报人。
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -32,8 +33,16 @@ public class Report {
     private User reporter;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id")
     private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
+
+    // 举报目标类型：POST 表示帖子，COMMENT 表示评论。
+    @Column(nullable = false, length = 16)
+    private String targetType = "POST";
 
     @Column(nullable = false, length = 500)
     private String reason;
@@ -44,7 +53,6 @@ public class Report {
     private LocalDateTime createdAt;
 
     @PrePersist
-    // 新增记录时自动填创建时间。
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }

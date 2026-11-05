@@ -27,4 +27,7 @@ public class Campus {
 
     @Column(nullable = false, unique = true, length = 32)
     private String code;
+
+    @Column(length = 200)
+    private String description;
 }

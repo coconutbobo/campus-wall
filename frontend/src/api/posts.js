@@ -1,95 +1,134 @@
 // 校园墙项目
 // 接口函数集合：校区、帖子、评论、点赞、收藏、举报、上传和管理后台的请求都集中在这里，页面只管调用。
+// 注意：所有接口返回的都是公开 ID，绝不返回学号；登录和注册返回的也是公开 ID。
 import client from './client.js'
 
-// 函数：listCampuses，具体逻辑见函数体。
 export function listCampuses() {
   return client.get('/campuses')
 }
 
-// 函数：listPosts，具体逻辑见函数体。
 export function listPosts(params) {
   return client.get('/posts', { params })
 }
 
-// 函数：getPost，具体逻辑见函数体。
 export function getPost(id) {
   return client.get('/posts/' + id)
 }
 
-// 函数：createPost，具体逻辑见函数体。
 export function createPost(payload) {
   return client.post('/posts', payload)
 }
 
-// 发表评论：评论也可以选择匿名，匿名评论同样只显示匿名用户。
+// 作者编辑自己的帖子，匿名帖子同样靠登录身份判断，本人不会因为匿名就失去编辑权。
+export function editPost(id, payload) {
+  return client.patch('/posts/' + id, payload)
+}
+
+export function deleteOwnPost(id) {
+  return client.delete('/posts/' + id)
+}
+
+// 本人帖子列表：包括匿名帖子，本人能从这里管理自己的匿名帖子。
+export function myPosts() {
+  return client.get('/me/posts')
+}
+
+// 校区订阅：订阅后首页可以选择只看订阅校区的内容。
+export function listSubscriptions() {
+  return client.get('/me/subscriptions')
+}
+
+export function subscribeCampus(campusId) {
+  return client.post('/me/subscriptions', { campusId })
+}
+
+export function unsubscribeCampus(campusId) {
+  return client.delete('/me/subscriptions/' + campusId)
+}
+
 export function addComment(id, payload) {
   return client.post('/posts/' + id + '/comments', payload)
 }
 
-// 点赞切换：已经点过赞就取消，没点过就新增，同一个用户对同一个帖子只能有一条点赞记录。
 export function toggleLike(id) {
   return client.post('/posts/' + id + '/like')
 }
 
-// 收藏切换：逻辑和点赞一样，已经收藏就取消，没收藏就新增。
 export function toggleFavorite(id) {
   return client.post('/posts/' + id + '/favorite')
 }
 
-// 函数：reportPost，具体逻辑见函数体。
 export function reportPost(id, reason) {
   return client.post('/posts/' + id + '/report', { reason })
 }
 
-// 函数：uploadImage，具体逻辑见函数体。
+// 举报评论：举报时要写原因，举报人信息不会公开显示。
+export function reportComment(commentId, reason) {
+  return client.post('/posts/comments/' + commentId + '/report', { reason })
+}
+
 export function uploadImage(file) {
   const form = new FormData()
   form.append('file', file)
   return client.post('/uploads', form, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 
-// 登录：核对学号和密码，封禁账号直接拒绝，成功后返回令牌。
 export function login(payload) {
   return client.post('/auth/login', payload)
 }
 
-// 注册新账号：先检查学号有没有被注册过，再把密码加密后保存。
+// 注销登录：服务端会让旧令牌失效，前端也要清除本地令牌。
+export function logout() {
+  return client.post('/auth/logout')
+}
+
 export function register(payload) {
   return client.post('/auth/register', payload)
 }
 
-// 函数：adminPosts，具体逻辑见函数体。
+// 注销当前账号：学号会被清除，自己的帖子和评论会改为匿名展示。
+export function deleteAccount() {
+  return client.delete('/auth/me')
+}
+
 export function adminPosts() {
   return client.get('/admin/posts')
 }
 
-// 函数：adminUsers，具体逻辑见函数体。
 export function adminUsers() {
   return client.get('/admin/users')
 }
 
-// 函数：adminReports，具体逻辑见函数体。
 export function adminReports() {
   return client.get('/admin/reports')
 }
 
-// 函数：adminDeletePost，具体逻辑见函数体。
-export function adminDeletePost(id) {
-  return client.delete('/admin/posts/' + id)
+export function adminAuditLogs() {
+  return client.get('/admin/audit-logs')
 }
 
-// 函数：adminBanUser，具体逻辑见函数体。
-export function adminBanUser(id) {
-  return client.post('/admin/users/' + id + '/ban')
+export function adminDeletePost(id, reason) {
+  return client.delete('/admin/posts/' + id, { data: { reason } })
 }
 
-// 函数：adminUnbanUser，具体逻辑见函数体。
-export function adminUnbanUser(id) {
-  return client.post('/admin/users/' + id + '/unban')
+export function adminDeleteComment(id, reason) {
+  return client.delete('/admin/comments/' + id, { data: { reason } })
 }
 
-// 函数：adminHandleReport，具体逻辑见函数体。
-export function adminHandleReport(id) {
-  return client.post('/admin/reports/' + id + '/handle')
+// 封禁账号：type 是 TEMPORARY 临时或 PERMANENT 永久，临时要传天数，理由会记进审计日志。
+export function adminBanUser(publicId, payload) {
+  return client.post('/admin/users/' + publicId + '/ban', payload)
+}
+
+export function adminUnbanUser(publicId, reason) {
+  return client.post('/admin/users/' + publicId + '/unban', { reason })
+}
+
+export function adminHandleReport(id, reason) {
+  return client.post('/admin/reports/' + id + '/handle', { reason })
+}
+
+// 管理员查看单个用户的学号：必须传理由，这次查看会被记进审计日志，普通用户列表里看不到学号。
+export function adminViewIdentity(publicId, reason) {
+  return client.get('/admin/users/' + publicId + '/identity', { params: { reason } })
 }

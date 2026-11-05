@@ -14,4 +14,19 @@ client.interceptors.request.use((config) => {
   return config
 })
 
+// 令牌过期或被注销、封禁后，后端会返回 401，前端在这里清除本地令牌并回到登录页，避免用失效令牌继续请求。
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('campus_wall_token')
+      localStorage.removeItem('campus_wall_user')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default client

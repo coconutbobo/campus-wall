@@ -1,7 +1,7 @@
-// 校园墙项目
-// 数据库实体：对应一张表，字段和数据库设计文档里的 Comment 保持一致。
 package com.campuswall.entity;
 
+// 评论实体：匿名规则和帖子完全一致，匿名评论只显示匿名用户，作者信息只保留在数据库内部。
+// 评论也有正常和已删除两种状态，管理员删评论时只改状态，不真正删除，方便审计和申诉。
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -41,10 +41,12 @@ public class Comment {
     @Column(nullable = false)
     private boolean anonymous = false;
 
+    @Column(nullable = false, length = 16)
+    private String status = "NORMAL";
+
     private LocalDateTime createdAt;
 
     @PrePersist
-    // 新增记录时自动填创建时间。
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }

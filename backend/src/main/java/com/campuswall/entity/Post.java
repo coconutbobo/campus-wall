@@ -1,7 +1,8 @@
-// 校园墙项目
-// 数据库实体：对应一张表，字段和数据库设计文档里的 Post 保持一致。
 package com.campuswall.entity;
 
+// 帖子实体：匿名只是一个展示开关，不是独立身份。
+// 匿名帖子的作者字段在数据库里仍然保留，方便管理员处理恶意内容，但公开接口永远不会把作者的公开 ID、学号暴露给其他人。
+// 发帖时的网络地址只存哈希，不存原始地址，IP 只作为辅助风控，绝不作为唯一的封禁依据，因为宿舍和教学楼经常共用出口。
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -48,6 +49,7 @@ public class Post {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    // 是否匿名展示，true 时其他人只看到匿名用户，作者本人和管理端除外。
     @Column(nullable = false)
     private boolean anonymous = false;
 
@@ -58,19 +60,21 @@ public class Post {
     @Column(nullable = false, length = 16)
     private PostStatus status = PostStatus.NORMAL;
 
+    // 发帖网络地址的哈希值，只用于频率统计和辅助风控，不存原始地址。
+    @Column(length = 64)
+    private String ipHash;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
     @PrePersist
-    // 新增记录时自动填创建时间。
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    // 更新记录时自动刷新更新时间。
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }

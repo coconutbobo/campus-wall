@@ -6,6 +6,7 @@
       <nav>
         <router-link to="/">首页</router-link>
         <router-link to="/publish">发帖</router-link>
+        <router-link v-if="user" to="/my">我的帖子</router-link>
         <router-link to="/admin">管理后台</router-link>
         <span v-if="user">{{ user.nickname }}</span>
         <router-link v-if="!user" to="/login">登录</router-link>
@@ -21,12 +22,18 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { logout as logoutApi } from './api/posts.js'
 
 const router = useRouter()
 const stored = localStorage.getItem('campus_wall_user')
 const user = ref(stored ? JSON.parse(stored) : null)
 
-function logout() {
+async function logout() {
+  // 先调服务端注销接口，让旧令牌立刻失效，只清本地令牌是不够的，旧令牌在有效期内仍然能用。
+  try {
+    await logoutApi()
+  } catch (e) {
+  }
   localStorage.removeItem('campus_wall_token')
   localStorage.removeItem('campus_wall_user')
   user.value = null

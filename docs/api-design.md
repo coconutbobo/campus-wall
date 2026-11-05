@@ -1,39 +1,57 @@
 # 接口设计
 
-基础路径是 /api，登录后需要在请求头带上 Authorization: Bearer 加 JWT。
+基础路径是 /api，登录后需要在请求头带上 Authorization: Bearer 加 JWT。令牌里只放公开 ID，不放学号，有效期 24 小时，过期后需要重新登录。
 
 ## 公开接口
 
-- GET /api/campuses：校区列表
-- GET /api/posts?campusId=&category=&keyword=&page=&size=：帖子列表
-- GET /api/posts/{id}：帖子详情，包含图片、专属字段、评论
-- POST /api/auth/register：学号、昵称、密码、校区注册
-- POST /api/auth/login：学号、密码登录，返回 JWT 和用户信息
+- GET /api/campuses：校区列表，只返回校区主键、名称和编码，不返回敏感信息
+- GET /api/posts?campusId=&campusIds=&subscribedOnly=&category=&keyword=&page=&size=：帖子列表，分页返回，每页最多 50 条；subscribedOnly 为 true 时只返回当前用户订阅的校区帖子
+- GET /api/posts/{id}：帖子详情，包含图片、专属字段、正常状态的评论
+- POST /api/auth/register：学号、昵称、密码、校区注册，返回公开 ID 和令牌，不返回学号
+- POST /api/auth/login：学号、密码登录，返回公开 ID 和令牌，不返回学号
 
 ## 登录后接口
 
-- POST /api/posts：发帖，包含板块专属字段和图片地址
+- POST /api/auth/logout：注销登录，令牌版本号递增，旧令牌立刻失效，前端也要清除本地令牌
+- DELETE /api/auth/me：注销账号，学号会被清除，自己的帖子和评论会改为匿名展示
+- POST /api/posts：发帖，包含板块专属字段和图片地址，每人每小时最多 10 条，同一网络地址哈希每小时最多 50 条
+- PATCH /api/posts/{id}：作者编辑自己的帖子，匿名帖子同样靠登录身份判断
 - DELETE /api/posts/{id}：作者自己删帖，改为 DELETED
-- POST /api/posts/{id}/comments：评论
+- GET /api/me/posts：当前用户自己的帖子列表，包括匿名帖子，分页返回
+- GET /api/me/subscriptions：当前用户的校区订阅列表
+- POST /api/me/subscriptions：订阅一个校区，传 campusId
+- DELETE /api/me/subscriptions/{campusId}：取消订阅一个校区
+- POST /api/posts/{id}/comments：评论，每人每小时最多 30 条，匿名评论规则和帖子一致
 - POST /api/posts/{id}/like：点赞，再次调用取消点赞
 - POST /api/posts/{id}/favorite：收藏，再次调用取消收藏
-- POST /api/posts/{id}/report：举报，带原因
-- POST /api/uploads：上传图片，返回图片地址，只接受图片类型，单张不超过 5MB
+- POST /api/posts/{id}/report：举报帖子，带原因
+- POST /api/posts/comments/{commentId}/report：举报评论，带原因
+- POST /api/uploads：上传图片，返回图片地址，只接受 JPEG、PNG、GIF、WebP 的真实文件头，拒绝 SVG 和其他类型，单张不超过 5MB
 
 ## 管理员接口
 
-只有 role 是 ADMIN 的账号可以调用：
+只有 role 是 ADMIN 的账号可以调用，安全配置会直接拦截非管理员请求，不是只在前端隐藏按钮：
 
-- GET /api/admin/posts：管理端帖子列表
-- DELETE /api/admin/posts/{id}：管理员删帖
-- GET /api/admin/users：管理端用户列表
-- POST /api/admin/users/{id}/ban：封禁账号
-- POST /api/admin/users/{id}/unban：解封账号
-- GET /api/admin/reports：举报列表
-- POST /api/admin/reports/{id}/handle：标记举报已处理
+- GET /api/admin/posts：管理端帖子列表，分页返回
+- DELETE /api/admin/posts/{id}：管理员删帖，理由会记进审计日志
+- DELETE /api/admin/comments/{id}：管理员删评论，理由会记进审计日志
+- GET /api/admin/users：管理端用户列表，分页返回，不返回学号，只返回公开 ID、昵称、角色和封禁状态
+- GET /api/admin/users/{publicId}/identity：管理员查看单个用户的学号，必须传理由，这次查看会被记进审计日志
+- POST /api/admin/users/{publicId}/ban：封禁账号，传 type 为 TEMPORARY 或 PERMANENT，临时封禁要传天数，理由会记进审计日志
+- POST /api/admin/users/{publicId}/unban：解封账号，理由会记进审计日志
+- GET /api/admin/reports：举报列表，分页返回，包括帖子举报和评论举报
+- POST /api/admin/reports/{id}/handle：标记举报已处理，理由会记进审计日志
+- GET /api/admin/audit-logs：审计日志列表，分页返回
 
 ## 显示规则
 
-- 帖子 anonymous 是 true 时，前端和接口都只返回匿名用户，不返回真实昵称和学号。
-- 帖子 anonymous 是 false 时，显示注册昵称，不显示学号。
-- 任何接口都不返回 password_hash。
+- 帖子 anonymous 是 true 时，前端和接口都只返回匿名用户，不返回真实昵称、公开 ID 和学号。
+- 帖子 anonymous 是 false 时，显示注册昵称和公开 ID，不显示学号。
+- 任何公开接口都不返回 password_hash、学号和数据库主键。
+- 本人帖子会多一个是本人的标记，只有本人登录后才能看到这个标记，别人看不到。
+
+## 权限规则
+
+- 所有写操作都以令牌里的公开 ID 为准，不接受请求里传来的 userId 来冒充别人。
+- 编辑和删除自己的帖子时，后端会核对帖子作者和当前登录用户是否一致，不一致直接返回无权限。
+- 管理员操作只看角色，不看前端是否显示了管理入口。

@@ -1,16 +1,39 @@
-# 校园墙项目：校园墙项目文件：docker-compose.yml。
+# 校园墙项目部署配置：数据库、后端和前端都在同一个 Docker 网络里运行。
+# 数据库不对外映射端口，只在内部网络里用服务名 db 提供服务，前端和后端容器通过内部网络访问它，公网无法直接连到数据库。
+# 没有写 container_name，让 Compose 按项目名自动生成容器名，同一台服务器上可以同时跑多个测试环境而不会命名冲突。
+# 生产环境必须用强密码，不要用 .env.example 里的占位密码，也不要把真实密码提交到 GitHub。
+# 本地开发如果需要用数据库工具直连，可以用 docker-compose.dev.yml 那个覆盖文件，它只把数据库绑到 127.0.0.1，不会绑到公网接口。
 services:
   db:
     image: mysql:8.0
-    container_name: campus-wall-db
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-local-only}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-campus_wall}
       MYSQL_USER: ${MYSQL_USER:-campus_wall}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-local-only}
-    ports:
-      - "3306:3306"
     volumes:
       - campus-wall-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/campus_wall?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-campus_wall}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change-me-local-only}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string-before-deploy}
+      UPLOAD_DIR: uploads
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 volumes:
   campus-wall-db-data:

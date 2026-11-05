@@ -1,0 +1,7 @@
+# 本地开发覆盖文件：只在本地开发时使用，数据库端口只绑到本机回环地址，不会暴露到公网接口。
+# 使用方法：docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+# 这样本地的数据库工具可以用 localhost:3306 直连，但服务器的公网接口仍然连不到数据库。
+services:
+  db:
+    ports:
+      - "127.0.0.1:3306:3306"

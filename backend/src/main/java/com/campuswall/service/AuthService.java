@@ -16,7 +16,6 @@ import com.campuswall.repository.PostRepository;
 import com.campuswall.repository.UserRepository;
 import com.campuswall.security.JwtUtil;
 import java.util.Map;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -81,12 +80,14 @@ public class AuthService {
     }
 
     // 注销账号：状态改为已注销，学号替换成占位值，密码清空，自己的帖子和评论改为匿名，避免注销后仍能通过内容关联到本人。
+    // 注意：学号字段在数据库里最长 32 个字符，之前用的 "deleted_" 加完整 UUID 一共 44 个字符，存不进去会直接报错回滚，
+    // 前端收到的就是失败，本地令牌也不会清，看起来就像点了注销却没注销。这里改用数据库主键做占位值，又短又唯一，也推不出原学号。
     @Transactional
     public void deleteAccount(String publicId) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
         user.setStatus(UserStatus.DELETED);
         user.setTokenVersion(user.getTokenVersion() + 1);
-        user.setStudentId("deleted_" + UUID.randomUUID().toString());
+        user.setStudentId("deleted_" + user.getId());
         user.setNickname("已注销用户");
         user.setPasswordHash("");
         user.setBanUntil(null);

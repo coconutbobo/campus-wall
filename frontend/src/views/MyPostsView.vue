@@ -59,7 +59,13 @@ async function remove(id) {
 
 async function deactivate() {
   if (!confirm('确定注销账号吗？注销后学号会被清除，帖子和评论会改为匿名展示，不可恢复。')) return
-  await deleteAccount()
+  // 注销失败时不要静默留在原地：先告诉用户失败了，也不要清本地令牌、不要跳登录页，否则会误以为已经注销了。
+  try {
+    await deleteAccount()
+  } catch (e) {
+    alert('注销失败，请稍后再试。如果一直失败，把浏览器里这次请求的报错发给宝锋看。')
+    return
+  }
   localStorage.removeItem('campus_wall_token')
   localStorage.removeItem('campus_wall_user')
   router.push('/login')

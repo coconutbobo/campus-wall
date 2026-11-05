@@ -48,6 +48,11 @@ export function changePassword(payload) {
   return client.patch('/me/password', payload)
 }
 
+// 补设 / 更换密保问题：给注册时还没有密保的老账号用的，必须登录，先输原密码；只改密保不改密码，令牌不受影响。
+export function setSecurityQuestion(payload) {
+  return client.patch('/me/security-question', payload)
+}
+
 // 密保问题：注册页从后端拿预设问题列表，忘密码时按学号查用户注册时选的问题。
 export function listSecurityQuestions() {
   return client.get('/auth/security-questions')

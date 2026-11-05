@@ -39,6 +39,6 @@ function goDetail() {
 
 <style scoped>
 .card { cursor: pointer; }
-.meta { display: flex; gap: 10px; color: #666; font-size: 13px; }
+.meta { display: flex; gap: 10px; color: var(--muted, #666); font-size: 13px; }
 .images img { width: 120px; height: 120px; object-fit: cover; margin-right: 8px; border-radius: 8px; }
 </style>

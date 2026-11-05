@@ -1,4 +1,5 @@
-<!-- 校园墙项目：前端外壳：顶部导航栏和页面容器，登录后显示昵称，退出时清除本地令牌和用户信息。 -->
+<!-- 校园墙项目：前端外壳：顶部导航栏和页面容器，登录后点昵称会展开下拉菜单，里面是“我的帖子”和“我的资料”，两者平行，退出也在里面。 -->
+<!-- 暗色模式存在本地，刷新后还在；颜色都走 CSS 变量，暗色只换变量的值，不用每个页面单独写一套样式。 -->
 <template>
   <div class="layout">
     <header class="topbar">
@@ -6,11 +7,17 @@
       <nav>
         <router-link to="/">首页</router-link>
         <router-link to="/publish">发帖</router-link>
-        <router-link v-if="user" to="/my">我的帖子</router-link>
         <router-link to="/admin">管理后台</router-link>
-        <span v-if="user">{{ user.nickname }}</span>
+        <button class="theme-btn" @click="toggleTheme" :title="theme === 'dark' ? '切换到浅色模式' : '切换到暗色模式'">{{ theme === 'dark' ? '☀️' : '🌙' }}</button>
         <router-link v-if="!user" to="/login">登录</router-link>
-        <button v-if="user" @click="logout">退出</button>
+        <div v-if="user" class="user-menu">
+          <button class="nickname-btn" @click.stop="menuOpen = !menuOpen">{{ user.nickname }} ▾</button>
+          <div v-if="menuOpen" class="menu">
+            <router-link to="/my" @click="menuOpen = false">我的帖子</router-link>
+            <router-link to="/profile" @click="menuOpen = false">我的资料</router-link>
+            <button @click="logout">退出</button>
+          </div>
+        </div>
       </nav>
     </header>
     <main>
@@ -20,15 +27,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout as logoutApi } from './api/posts.js'
 
 const router = useRouter()
 const stored = localStorage.getItem('campus_wall_user')
 const user = ref(stored ? JSON.parse(stored) : null)
+const menuOpen = ref(false)
+
+// 暗色模式：先读本地存的，没有就默认浅色；切换后立刻存起来，刷新页面也不会丢。
+const theme = ref(localStorage.getItem('campus_wall_theme') || 'light')
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme.value)
+  localStorage.setItem('campus_wall_theme', theme.value)
+}
+
+function toggleTheme() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  applyTheme()
+}
+
+// 点下拉菜单外面就把它关掉，不然它会一直挡着页面。
+function closeMenuOnOutsideClick(event) {
+  if (!event.target.closest('.user-menu')) menuOpen.value = false
+}
 
 async function logout() {
+  menuOpen.value = false
   // 先调服务端注销接口，让旧令牌立刻失效，只清本地令牌是不够的，旧令牌在有效期内仍然能用。
   try {
     await logoutApi()
@@ -39,16 +66,55 @@ async function logout() {
   user.value = null
   router.push('/login')
 }
+
+onMounted(() => {
+  applyTheme()
+  document.addEventListener('click', closeMenuOnOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenuOnOutsideClick)
+})
 </script>
 
 <style>
-body { margin: 0; font-family: system-ui, sans-serif; background: #f6f7f9; color: #222; }
-.topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #fff; border-bottom: 1px solid #e5e7eb; }
+/* 浅色是默认值，暗色只改下面这些变量的值，页面结构和文字都不用动。 */
+:root {
+  --bg: #f6f7f9;
+  --surface: #fff;
+  --text: #222;
+  --muted: #666;
+  --border: #e5e7eb;
+  --input-bg: #fff;
+  --input-border: #d1d5db;
+  --button-bg: #fff;
+  --button-border: #d1d5db;
+}
+[data-theme="dark"] {
+  --bg: #121417;
+  --surface: #1e2126;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #2e3238;
+  --input-bg: #262a30;
+  --input-border: #3a3f47;
+  --button-bg: #262a30;
+  --button-border: #3a3f47;
+}
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .topbar nav { display: flex; gap: 14px; align-items: center; }
-.topbar a { color: #222; text-decoration: none; }
+.topbar a { color: var(--text); text-decoration: none; }
 .brand { font-weight: 700; font-size: 18px; }
 main { max-width: 880px; margin: 0 auto; padding: 20px; }
-button { cursor: pointer; }
-input, select, textarea { width: 100%; padding: 8px; margin: 6px 0 12px; box-sizing: border-box; }
-.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+button { cursor: pointer; background: var(--button-bg); color: var(--text); border: 1px solid var(--button-border); border-radius: 6px; padding: 6px 10px; }
+input, select, textarea { width: 100%; padding: 8px; margin: 6px 0 12px; box-sizing: border-box; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 6px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+/* 昵称下拉菜单：点昵称才展开，里面的“我的帖子”和“我的资料”是平行的两个入口，退出也在同一层。 */
+.user-menu { position: relative; }
+.nickname-btn { border: none; background: transparent; font-size: 15px; padding: 6px 4px; }
+.theme-btn { border: none; background: transparent; font-size: 16px; padding: 6px 4px; }
+.menu { position: absolute; right: 0; top: 100%; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); z-index: 10; }
+.menu a, .menu button { display: block; width: 100%; text-align: left; padding: 8px 12px; border: none; background: transparent; box-sizing: border-box; }
+.menu a:hover, .menu button:hover { background: var(--bg); border-radius: 6px; }
 </style>

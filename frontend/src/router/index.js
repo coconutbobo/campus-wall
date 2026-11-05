@@ -9,6 +9,7 @@ import RegisterView from '../views/RegisterView.vue'
 import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import AdminView from '../views/AdminView.vue'
 import MyPostsView from '../views/MyPostsView.vue'
+import MyProfileView from '../views/MyProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -17,6 +18,7 @@ const router = createRouter({
     { path: '/post/:id', component: PostDetailView },
     { path: '/publish', component: PublishView },
     { path: '/my', component: MyPostsView },
+    { path: '/profile', component: MyProfileView },
     { path: '/login', component: LoginView },
     { path: '/register', component: RegisterView },
     { path: '/forgot-password', component: ForgotPasswordView },

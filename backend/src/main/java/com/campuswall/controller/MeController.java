@@ -70,6 +70,18 @@ public class MeController {
         return Map.of("ok", true);
     }
 
+    // 补设 / 更换密保问题：给注册时还没有密保的老账号用的，也能给已经设过的账号换问题和答案。
+    // 必须登录，必须先输对原密码；只改密保不改密码，令牌不受影响，不用重新登录。
+    @PatchMapping("/security-question")
+    public Map<String, Object> setSecurityQuestion(Authentication authentication, @RequestBody Map<String, Object> body) {
+        authService.setSecurityQuestion(
+                authentication.getName(),
+                body.get("currentPassword") == null ? "" : String.valueOf(body.get("currentPassword")),
+                body.get("securityQuestion") == null ? "" : String.valueOf(body.get("securityQuestion")),
+                body.get("securityAnswer") == null ? "" : String.valueOf(body.get("securityAnswer")));
+        return Map.of("ok", true);
+    }
+
     // 当前用户的校区订阅列表：只返回校区主键、名称和编码。
     @GetMapping("/subscriptions")
     public List<Map<String, Object>> subscriptions(Authentication authentication) {

@@ -145,6 +145,11 @@ public class AuthService {
         result.put("role", user.getRole().name());
         result.put("campusName", user.getCampus() == null ? "" : user.getCampus().getName());
         result.put("nextNicknameChangeAt", nextNicknameChangeDate(user));
+        // 是否已设密保：只返回有没有，不返回问题和答案本身，前端靠它显示“已设置 / 未设置”。
+        result.put("hasSecurityQuestion", user.getSecurityQuestion() != null && !user.getSecurityQuestion().isBlank());
+        // 当前选的密保问题本身也可以返回：问题只是预设列表里的一句话，不是秘密，忘密码接口本来就能按学号查到它，
+        // 前端靠它让下拉框默认选中当前问题，改密保时不用每次都回到第一个问题。答案绝不返回。
+        result.put("securityQuestion", user.getSecurityQuestion());
         return result;
     }
 
@@ -197,6 +202,27 @@ public class AuthService {
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
+    }
+
+    // 补设 / 更换密保问题：给注册时还没有密保的老账号（比如 owner）用的，也能给已经设过的账号换问题和答案。
+    // 必须登录，必须先输对原密码，防止别人拿到登录态就把找回密码的口子改成自己的；只改密保不改密码，所以令牌版本号不动，不用重新登录。
+    // 问题必须从预设列表里选，答案 1 到 64 个字符，只存 BCrypt 加密值；校验失败返回 400 而不是 401，原密码输错不该把人踢下线。
+    @Transactional
+    public void setSecurityQuestion(String publicId, String currentPassword, String securityQuestion, String securityAnswer) {
+        User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
+        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "current password is incorrect");
+        }
+        if (securityQuestion == null || !SECURITY_QUESTIONS.contains(securityQuestion)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid security question");
+        }
+        String answer = securityAnswer == null ? "" : securityAnswer.trim();
+        if (answer.isEmpty() || answer.length() > 64) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "security answer must be 1-64 characters");
+        }
+        user.setSecurityQuestion(securityQuestion);
+        user.setSecurityAnswerHash(passwordEncoder.encode(answer));
         userRepository.save(user);
     }
 

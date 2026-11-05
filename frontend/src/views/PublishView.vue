@@ -1,4 +1,5 @@
 <!-- 校园墙项目：发帖页：选择板块后动态显示专属字段，失物填地点和时间，二手填价格和成色，可以勾选匿名和上传图片。 -->
+<!-- 联系方式不在这里填了，统一在“我的资料”里填好永久保存；发帖时只选要不要公开它。发布前要先勾“我确认无违规内容”。 -->
 <template>
   <div class="card">
     <h2>发帖</h2>
@@ -38,12 +39,13 @@
       <label>心情标签</label>
       <input v-model="form.mood" />
     </div>
-    <label>联系方式</label>
-    <input v-model="form.contactInfo" placeholder="二手和失物建议填写，线下自行交易" />
     <label>图片</label>
     <input type="file" accept="image/*" multiple @change="onFiles" />
-    <label><input type="checkbox" v-model="form.anonymous" style="width:auto;" /> 匿名发布，显示为匿名用户</label>
-    <p>匿名只是展示方式：其他人只看到匿名用户，不会看到你的昵称和公开 ID，但管理员在处理违规时仍能追责；正文里不要写手机号、身份证号，系统会直接拦截这类内容。</p>
+    <label><input type="checkbox" v-model="form.anonymous" style="width:auto;" /> 匿名发布</label>
+    <label><input type="checkbox" v-model="form.showContactInfo" style="width:auto;" /> 公开我的联系方式</label>
+    <p v-if="hasContactInfo">联系方式是“我的资料”里填的那一个，勾了别人才看得到，不勾就不显示。</p>
+    <p v-else>你还没有在“我的资料”里填联系方式，勾了公开也不会显示，先去“我的资料”里填一个。</p>
+    <label><input type="checkbox" v-model="confirmed" style="width:auto;" /> 我确认无违规内容</label>
     <button @click="submit">发布</button>
     <p>{{ message }}</p>
   </div>
@@ -52,19 +54,21 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { createPost, listCampuses, uploadImage } from '../api/posts.js'
+import { createPost, getProfile, listCampuses, uploadImage } from '../api/posts.js'
 
 const router = useRouter()
 const campuses = ref([])
 const files = ref([])
 const message = ref('')
+const confirmed = ref(false)
+const hasContactInfo = ref(false)
 const form = reactive({
   campusId: '',
   category: 'LOST',
   title: '',
   content: '',
   anonymous: false,
-  contactInfo: '',
+  showContactInfo: false,
   lostKind: 'LOST',
   location: '',
   happenedAt: '',
@@ -79,20 +83,37 @@ function onFiles(event) {
 
 async function submit() {
   message.value = ''
-  const imageUrls = []
-  for (const file of files.value) {
-    const response = await uploadImage(file)
-    imageUrls.push(response.data.url)
+  // 发布前必须先勾确认框，没勾就不发，免得手滑把没检查过的内容发出去了。
+  if (!confirmed.value) {
+    message.value = '请先勾选“我确认无违规内容”再发布'
+    return
   }
-  const payload = { ...form, imageUrls }
-  if (payload.happenedAt) payload.happenedAt = payload.happenedAt + ':00'
-  await createPost(payload)
-  router.push('/')
+  try {
+    const imageUrls = []
+    for (const file of files.value) {
+      const response = await uploadImage(file)
+      imageUrls.push(response.data.url)
+    }
+    const payload = { ...form, imageUrls }
+    if (payload.happenedAt) payload.happenedAt = payload.happenedAt + ':00'
+    await createPost(payload)
+    router.push('/')
+  } catch (e) {
+    message.value = (e.response && e.response.data && e.response.data.message)
+      ? '发布失败：' + e.response.data.message
+      : '发布失败，请稍后再试'
+  }
 }
 
 onMounted(async () => {
   const response = await listCampuses()
   campuses.value = response.data
   if (campuses.value.length) form.campusId = campuses.value[0].id
+  try {
+    const profile = (await getProfile()).data
+    hasContactInfo.value = !!(profile.contactInfo && profile.contactInfo.trim())
+  } catch (e) {
+    hasContactInfo.value = false
+  }
 })
 </script>

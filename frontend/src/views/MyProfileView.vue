@@ -2,13 +2,20 @@
 <template>
   <div>
     <h2>我的资料</h2>
-    <p>学号注册后就不能改了，这里只能改昵称；昵称 30 天只能改一次，改完要等满 30 天才能再改。</p>
     <div class="card">
       <h3>昵称</h3>
       <label>昵称</label>
       <input v-model="nickname" maxlength="64" />
       <p v-if="nextNicknameChangeAt">下次可改昵称：{{ nextNicknameChangeAt }}</p>
-      <p v-else>现在可以改昵称。</p>
+      <p v-else>现在可以改昵称。更改后，30天内无法更改</p>
+      <button @click="saveProfile">保存资料</button>
+      <p>{{ profileMessage }}</p>
+    </div>
+    <div class="card">
+      <h3>联系方式</h3>
+      <p>联系方式填一次就永久保存，发帖时你自己选要不要公开它，不公开别人就看不到。</p>
+      <label>联系方式</label>
+      <input v-model="contactInfo" maxlength="128" placeholder="例如：微信号、手机号、QQ 号" />
       <button @click="saveProfile">保存资料</button>
       <p>{{ profileMessage }}</p>
     </div>
@@ -19,6 +26,7 @@
       <input type="password" v-model="currentPassword" />
       <label>新密码</label>
       <input type="password" v-model="newPassword" />
+      <p>密码格式：至少 6 位，必须包含字母和数字</p>
       <label>确认新密码</label>
       <input type="password" v-model="confirmPassword" />
       <button @click="savePassword">更改密码</button>
@@ -41,7 +49,7 @@
     </div>
     <div class="card">
       <h3>注销账号</h3>
-      <p>注销后你的学号会被清除，密码会被清空，你的帖子和评论会改为匿名展示，这个操作不可恢复。</p>
+      <p>注销后你的学号会改成原学号加 _delete，密码会被清空，你的帖子和评论会改为匿名展示，这个操作不可恢复。</p>
       <button @click="deactivate">注销我的账号</button>
     </div>
   </div>
@@ -54,6 +62,7 @@ import { changePassword, deleteAccount, getProfile, listSecurityQuestions, setSe
 
 const router = useRouter()
 const nickname = ref('')
+const contactInfo = ref('')
 const nextNicknameChangeAt = ref('')
 const profileMessage = ref('')
 const currentPassword = ref('')
@@ -73,6 +82,7 @@ async function load() {
     // 如果已经设过密保，后端会把当前选的问题也返回回来，下拉框就默认选中它，而不是每次都回到第一个问题。
     const profile = (await getProfile()).data
     nickname.value = profile.nickname || ''
+    contactInfo.value = profile.contactInfo || ''
     nextNicknameChangeAt.value = profile.nextNicknameChangeAt || ''
     hasSecurityQuestion.value = !!profile.hasSecurityQuestion
     if (profile.securityQuestion) securityQuestion.value = profile.securityQuestion
@@ -90,7 +100,7 @@ async function load() {
 
 async function saveProfile() {
   try {
-    const response = await updateProfile({ nickname: nickname.value })
+    const response = await updateProfile({ nickname: nickname.value, contactInfo: contactInfo.value })
     // 顶栏的昵称是登录时存下来的，改完只刷新页面不会变，先同步本地存的用户信息再刷新。
     const stored = localStorage.getItem('campus_wall_user')
     if (stored) {
@@ -108,8 +118,8 @@ async function saveProfile() {
 }
 
 async function savePassword() {
-  if (newPassword.value.length < 6 || newPassword.value.length > 64) {
-    passwordMessage.value = '新密码要 6 到 64 个字符'
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{6,64}$/.test(newPassword.value)) {
+    passwordMessage.value = '新密码格式：至少 6 位，必须包含字母和数字'
     return
   }
   if (newPassword.value !== confirmPassword.value) {

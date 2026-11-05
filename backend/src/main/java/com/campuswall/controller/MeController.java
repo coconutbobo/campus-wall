@@ -44,20 +44,28 @@ public class MeController {
         return postService.myPosts(authentication.getName(), page, size);
     }
 
+    // 我的收藏：只返回当前用户收藏过的、还没被删除的帖子，同样做分页。
+    @GetMapping("/favorites")
+    public org.springframework.data.domain.Page<Map<String, Object>> myFavorites(Authentication authentication, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return postService.myFavorites(authentication.getName(), page, size);
+    }
+
     // 我的资料：只返回公开 ID、昵称、角色、校区名和下次可改昵称的日期，学号绝不返回。
     @GetMapping("/profile")
     public Map<String, Object> profile(Authentication authentication) {
         return authService.profile(authentication.getName());
     }
 
-    // 改资料：只改昵称，学号不给用户改，前端传了 studentId 也会被后端直接忽略。
-    // 昵称 30 天只能改一次，冷却期内后端会返回 400 和下次可改日期。
+    // 改资料：改昵称和联系方式，学号不给用户改，前端传了 studentId 也会被后端直接忽略。
+    // 昵称 30 天只能改一次，冷却期内后端会返回 400 和下次可改日期；联系方式随时能改，永久保存。
     @PatchMapping("/profile")
     public Map<String, Object> updateProfile(Authentication authentication, @RequestBody Map<String, Object> body) {
         Object nickname = body.get("nickname");
+        Object contactInfo = body.get("contactInfo");
         return authService.updateProfile(
                 authentication.getName(),
-                nickname == null ? "" : String.valueOf(nickname));
+                nickname == null ? "" : String.valueOf(nickname),
+                contactInfo == null ? null : String.valueOf(contactInfo));
     }
 
     // 改密码：必须登录，必须先输对原密码，改完旧令牌全部失效，前端要清本地令牌，让用户重新登录。

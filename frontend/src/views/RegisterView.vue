@@ -12,6 +12,7 @@
     </select>
     <label>密码</label>
     <input type="password" v-model="form.password" />
+    <p>密码格式：至少 6 位，必须包含字母和数字</p>
     <label>密保问题（忘密码时用）</label>
     <select v-model="form.securityQuestion">
       <option v-for="question in securityQuestions" :key="question" :value="question">{{ question }}</option>
@@ -38,6 +39,10 @@ async function submit() {
   // 学号先在前端拦一下，11 位数字才发请求，后端同样会再拦一次。
   if (!/^\d{11}$/.test(form.studentId)) {
     message.value = '注册失败，学号只能填 11 位数字'
+    return
+  }
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{6,64}$/.test(form.password)) {
+    message.value = '注册失败，密码格式：至少 6 位，必须包含字母和数字'
     return
   }
   if (!form.securityQuestion || !form.securityAnswer.trim()) {

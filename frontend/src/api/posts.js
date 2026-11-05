@@ -33,6 +33,24 @@ export function myPosts() {
   return client.get('/me/posts')
 }
 
+// 本人收藏列表：只返回当前用户收藏过的、还没被删除的帖子。
+export function myFavorites() {
+  return client.get('/me/favorites')
+}
+
+// 公告：所有人都能看，只有管理员能发和删。
+export function listAnnouncements() {
+  return client.get('/announcements')
+}
+
+export function createAnnouncement(payload) {
+  return client.post('/announcements', payload)
+}
+
+export function deleteAnnouncement(id) {
+  return client.delete('/announcements/' + id)
+}
+
 // 我的资料：只返回公开 ID、昵称、角色和校区名，不返回学号。
 export function getProfile() {
   return client.get('/me/profile')

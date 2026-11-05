@@ -56,7 +56,7 @@ public class PostController {
         return postService.detail(id, current);
     }
 
-    // 发帖：把网络地址哈希后交给服务层，服务层再做频率限制和敏感信息检测。
+    // 发帖：把网络地址哈希后交给服务层，服务层再做频率限制。
     @PostMapping
     public Map<String, Object> create(Authentication authentication, HttpServletRequest request, @Valid @RequestBody PostCreateRequest body) {
         return postService.create(authentication.getName(), body, PostService.hashIp(request.getRemoteAddr()));
@@ -67,8 +67,8 @@ public class PostController {
     public Map<String, Object> editOwn(Authentication authentication, @PathVariable Long id, @RequestBody Map<String, Object> body) {
         String title = body.get("title") == null ? null : String.valueOf(body.get("title"));
         String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
-        String contactInfo = body.get("contactInfo") == null ? null : String.valueOf(body.get("contactInfo"));
-        return postService.editOwn(authentication.getName(), id, title, content, contactInfo);
+        Boolean showContactInfo = body.get("showContactInfo") == null ? null : Boolean.parseBoolean(String.valueOf(body.get("showContactInfo")));
+        return postService.editOwn(authentication.getName(), id, title, content, showContactInfo);
     }
 
     // 作者删除自己的帖子。

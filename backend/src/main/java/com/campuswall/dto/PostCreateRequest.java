@@ -16,7 +16,7 @@ public record PostCreateRequest(
         @NotBlank String title,
         @NotBlank String content,
         boolean anonymous,
-        String contactInfo,
+        boolean showContactInfo,
         List<String> imageUrls,
         String lostKind,
         String location,

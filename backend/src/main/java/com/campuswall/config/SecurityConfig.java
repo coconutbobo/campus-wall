@@ -36,6 +36,9 @@ public class SecurityConfig {
                 // 注意：只放行登录和注册，注销登录和注销账号必须登录后才能调用，不能用 /api/auth/** 一起放行，否则匿名请求会进到控制器里拿不到登录身份。
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/security-questions", "/api/auth/security-question", "/api/auth/forgot-password", "/api/campuses").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/announcements").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/announcements").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/announcements/**").hasRole("ADMIN")
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated());

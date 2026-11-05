@@ -3,7 +3,7 @@ package com.campuswall.entity;
 // 用户实体：内部用数据库主键做关联，对外只用公开 ID，学号只用来登录，绝不作为公开身份。
 // 公开 ID 是随机生成的，与学号没有任何推导关系，别人拿到公开 ID 也推不出学号。
 // 封禁分临时和永久：临时封禁要填截止时间，到期后自动恢复；永久封禁的截止时间为空。
-// 注销后账号状态改为已注销，学号会被替换成不可恢复的占位值，密码会被清空。
+// 注销后账号状态改为已注销，学号会被改成原学号加 _delete，密码和联系方式会被清空。
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -47,6 +47,10 @@ public class User {
 
     @Column(nullable = false, length = 64)
     private String nickname;
+
+    // 联系方式：用户自己在“我的资料”里填，永久保存；发帖时用户自己选要不要让别人看到，不选就不公开。
+    @Column(length = 128)
+    private String contactInfo;
 
     @Column(nullable = false)
     private String passwordHash;

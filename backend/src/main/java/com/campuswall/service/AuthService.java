@@ -47,6 +47,25 @@ public class AuthService {
             "你第一次养的宠物的名字是？"
     );
 
+    // 密码格式：至少 6 位，最多 64 位，必须同时包含字母和数字；只含字母或只含数字都不算合格。
+    // 注册、忘密码重置和改密码都走这个校验，登录时不校验格式，老账号原来的密码照样能登录。
+    private static boolean isValidPassword(String password) {
+        if (password == null || password.length() < 6 || password.length() > 64) {
+            return false;
+        }
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+        for (char c : password.toCharArray()) {
+            if (Character.isLetter(c)) {
+                hasLetter = true;
+            }
+            if (Character.isDigit(c)) {
+                hasDigit = true;
+            }
+        }
+        return hasLetter && hasDigit;
+    }
+
     // 注册：学号必须是 11 位数字，密保问题必须在预设列表里，答案必填；检查学号是否重复，找到校区，密码和密保答案都加密后保存，返回公开 ID 和令牌。
     // 昵称 30 天冷却从第一次改昵称开始算，注册本身不算改，所以新账号的 nicknameChangedAt 留空，第一次改昵称不受限制。
     public Map<String, Object> register(RegisterRequest request) {
@@ -62,6 +81,9 @@ public class AuthService {
         }
         if (userRepository.existsByStudentId(request.studentId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "studentId already exists");
+        }
+        if (!isValidPassword(request.password())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "密码格式：至少 6 位，必须包含字母和数字");
         }
         Campus campus = campusRepository.findById(request.campusId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "campus not found"));
         User user = new User();
@@ -89,7 +111,7 @@ public class AuthService {
     }
 
     // 忘密码重置：不用登录，凭学号加密保答案核对身份，答案对了才能设新密码。
-    // 新密码 6 到 64 个字符；重置成功后令牌版本号递增，之前发出的所有令牌立刻失效，改完要重新登录。
+    // 新密码至少 6 位，必须包含字母和数字；重置成功后令牌版本号递增，之前发出的所有令牌立刻失效，改完要重新登录。
     // 答案错了只说答案不正确，不透露注册时的问题和答案，避免别人靠报错猜答案。
     @Transactional
     public void resetPasswordBySecurity(String studentId, String securityAnswer, String newPassword) {
@@ -100,8 +122,8 @@ public class AuthService {
         if (user.getSecurityQuestion() == null || user.getSecurityAnswerHash() == null || user.getSecurityAnswerHash().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "this account has no security question, please contact an admin");
         }
-        if (newPassword == null || newPassword.length() < 6 || newPassword.length() > 64) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "new password must be 6-64 characters");
+        if (!isValidPassword(newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "密码格式：至少 6 位，必须包含字母和数字");
         }
         String answer = securityAnswer == null ? "" : securityAnswer.trim();
         if (!passwordEncoder.matches(answer, user.getSecurityAnswerHash())) {
@@ -150,6 +172,8 @@ public class AuthService {
         // 当前选的密保问题本身也可以返回：问题只是预设列表里的一句话，不是秘密，忘密码接口本来就能按学号查到它，
         // 前端靠它让下拉框默认选中当前问题，改密保时不用每次都回到第一个问题。答案绝不返回。
         result.put("securityQuestion", user.getSecurityQuestion());
+        // 联系方式是用户自己填的，返回给本人看和改，发帖时要不要公开由帖子自己的开关决定。
+        result.put("contactInfo", user.getContactInfo());
         return result;
     }
 
@@ -170,13 +194,22 @@ public class AuthService {
     // 传的昵称和现在一样就不算改，不记时间也不触发冷却。
     // 校验失败都返回 400 而不是 401，因为前端拦截器一见 401 就会清令牌跳登录页，昵称输错不该把人踢下线。
     @Transactional
-    public Map<String, Object> updateProfile(String publicId, String nickname) {
+    public Map<String, Object> updateProfile(String publicId, String nickname, String contactInfo) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
         String newNickname = nickname == null ? "" : nickname.trim();
         if (newNickname.isEmpty() || newNickname.length() > 64) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nickname must be 1-64 characters");
         }
+        // 联系方式随时能改，不受昵称 30 天冷却限制，最长 128 个字符；传了空串就是清空。
+        if (contactInfo != null) {
+            String newContactInfo = contactInfo.trim();
+            if (newContactInfo.length() > 128) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contact info must be at most 128 characters");
+            }
+            user.setContactInfo(newContactInfo.isEmpty() ? null : newContactInfo);
+        }
         if (newNickname.equals(user.getNickname())) {
+            userRepository.save(user);
             return profile(publicId);
         }
         if (user.getNicknameChangedAt() != null && user.getNicknameChangedAt().plusDays(30).isAfter(LocalDateTime.now())) {
@@ -188,17 +221,17 @@ public class AuthService {
         return profile(publicId);
     }
 
-    // 改密码：必须登录，必须先输对原密码，新密码 6 到 64 个字符。
+    // 改密码：必须登录，必须先输对原密码，新密码至少 6 位，必须包含字母和数字。
     // 改完令牌版本号递增，之前发出的所有令牌立刻失效，所以前端改完要清本地令牌，让用户重新登录。
     // 校验失败返回 400 而不是 401，原密码输错不该把人踢下线。
     @Transactional
     public void changePassword(String publicId, String currentPassword, String newPassword) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
         if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "current password is incorrect");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "原密码错误");
         }
-        if (newPassword == null || newPassword.length() < 6 || newPassword.length() > 64) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "new password must be 6-64 characters");
+        if (!isValidPassword(newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "密码格式：至少 6 位，必须包含字母和数字");
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
@@ -212,7 +245,7 @@ public class AuthService {
     public void setSecurityQuestion(String publicId, String currentPassword, String securityQuestion, String securityAnswer) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
         if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "current password is incorrect");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "原密码错误");
         }
         if (securityQuestion == null || !SECURITY_QUESTIONS.contains(securityQuestion)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid security question");
@@ -234,19 +267,24 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    // 注销账号：状态改为已注销，学号替换成占位值，密码清空，自己的帖子和评论改为匿名，避免注销后仍能通过内容关联到本人。
-    // 注意：学号字段在数据库里最长 32 个字符，之前用的 "deleted_" 加完整 UUID 一共 44 个字符，存不进去会直接报错回滚，
-    // 前端收到的就是失败，本地令牌也不会清，看起来就像点了注销却没注销。这里改用数据库主键做占位值，又短又唯一，也推不出原学号。
+    // 注销账号：状态改为已注销，学号保留原学号再加 _delete，密码和联系方式清空，自己的帖子和评论改为匿名，避免注销后仍能通过内容关联到本人。
+    // 这样做原学号就空出来了，之后还能用原学号重新注册，而注销后的那一行因为带了 _delete，不会和新账号撞唯一约束。
+    // 注意：学号字段在数据库里最长 32 个字符，原学号太长时先截到 25 个字符再加 _delete，正好 32 个字符。
     @Transactional
     public void deleteAccount(String publicId) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user not found"));
         user.setStatus(UserStatus.DELETED);
         user.setTokenVersion(user.getTokenVersion() + 1);
-        user.setStudentId("deleted_" + user.getId());
+        String originalStudentId = user.getStudentId();
+        if (originalStudentId != null && originalStudentId.length() > 25) {
+            originalStudentId = originalStudentId.substring(0, 25);
+        }
+        user.setStudentId((originalStudentId == null ? "deleted" : originalStudentId) + "_delete");
         user.setNickname("已注销用户");
         user.setPasswordHash("");
         user.setSecurityQuestion(null);
         user.setSecurityAnswerHash(null);
+        user.setContactInfo(null);
         user.setBanUntil(null);
         user.setBanReason(null);
         userRepository.save(user);

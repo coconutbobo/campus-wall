@@ -23,7 +23,7 @@
 - GET /api/me/posts：当前用户自己的帖子列表，包括匿名帖子，分页返回
 - GET /api/me/profile：当前用户自己的资料，只返回公开 ID、昵称、角色、校区名、下次可改昵称的日期、是否已设密保和当前选的密保问题，不返回学号和密保答案；没改过昵称时下次可改日期为空
 - PATCH /api/me/profile：只改自己的昵称，传 nickname；学号不给用户改，传了 studentId 也会被后端直接忽略；昵称 30 天只能改一次，传的昵称和现在一样不算改，冷却期内返回 400 和下次可改日期
-- PATCH /api/me/password：改自己的密码，必须先输对原密码 currentPassword，新密码 newPassword 6 到 64 个字符，改完旧令牌全部失效，要重新登录，原密码错了返回 400，不会把人踢下线
+- PATCH /api/me/password：改自己的密码，必须先输对原密码 currentPassword，新密码 newPassword 至少 6 位，必须包含字母和数字，改完旧令牌全部失效，要重新登录，原密码错了返回 400，不会把人踢下线
 - PATCH /api/me/security-question：补设 / 更换自己的密保问题，传原密码 currentPassword、密保问题 securityQuestion 和密保答案 securityAnswer；问题必须从预设列表里选，答案 1 到 64 个字符，只存 BCrypt 加密值；只改密保不改密码，令牌不受影响，不用重新登录
 - GET /api/me/subscriptions：当前用户的校区订阅列表
 - POST /api/me/subscriptions：订阅一个校区，传 campusId
@@ -62,3 +62,9 @@
 - 所有写操作都以令牌里的公开 ID 为准，不接受请求里传来的 userId 来冒充别人。
 - 编辑和删除自己的帖子时，后端会核对帖子作者和当前登录用户是否一致，不一致直接返回无权限。
 - 管理员操作只看角色，不看前端是否显示了管理入口。
+
+- GET /api/announcements：公告列表，不用登录也能看，最新在最前面；POST /api/announcements 和 DELETE /api/announcements/{id}：只有管理员能发和删公告
+- GET /api/me/favorites：当前用户收藏的帖子，分页返回，已删除的帖子不返回
+- GET /api/me/profile：还返回联系方式 contactInfo 和当前选的密保问题；PATCH /api/me/profile：改昵称和联系方式，联系方式随时能改、不受昵称 30 天冷却限制
+- PATCH /api/me/password 和 PATCH /api/me/security-question：原密码输错返回 400，原密码错误
+- DELETE /api/auth/me：注销账号时学号保留原学号再加 _delete，密码、联系方式和密保清空，自己的帖子和评论改为匿名

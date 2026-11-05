@@ -1,6 +1,7 @@
 package com.campuswall.service;
 
-// 帖子核心服务：匿名、频率限制、敏感信息检测和本人管理都在这里。
+// 帖子核心服务：匿名、频率限制和本人管理都在这里。
+// 手机号和身份证号不再拦截：用户自己在正文里写什么，由举报和管理来处理，系统不再靠正则直接拦掉。
 // 匿名只是展示规则：公开接口里匿名帖子只返回匿名用户和空的作者公开 ID，不返回任何能把不同匿名帖子关联到同一个人的标识。
 // 作者本人除外：本人登录后在自己的帖子列表和详情里能看到这是自己的帖子，也能编辑和删除，不会因为匿名就失去管理权。
 // 频率限制用数据库计数实现：每人每小时最多发 10 条帖子、30 条评论，同一网络地址哈希每小时最多发 50 条帖子，IP 只是辅助，不单独作为封禁依据。
@@ -28,7 +29,6 @@ import com.campuswall.repository.QaDetailRepository;
 import com.campuswall.repository.SecondhandDetailRepository;
 import com.campuswall.repository.UserRepository;
 import com.campuswall.repository.VentDetailRepository;
-import com.campuswall.util.SensitiveInfoDetector;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
@@ -119,7 +119,10 @@ public class PostService {
             map.put("displayName", post.getAuthor().getNickname());
             map.put("authorPublicId", post.getAuthor().getPublicId());
         }
-        map.put("contactInfo", post.getContactInfo());
+        // 联系方式存在作者的资料里，不存在帖子表里；只有发帖时用户勾了公开，别人才看得到，不勾就返回空。
+        // 作者已注销时也不返回，避免注销后还能通过联系方式关联到本人。
+        map.put("contactInfo", post.isShowContactInfo() && !post.getAuthor().getStatus().name().equals("DELETED") ? post.getAuthor().getContactInfo() : null);
+        map.put("showContactInfo", post.isShowContactInfo());
         map.put("status", post.getStatus().name());
         map.put("createdAt", post.getCreatedAt() == null ? null : post.getCreatedAt().toString());
         map.put("likeCount", postLikeRepository.countByPostId(post.getId()));
@@ -215,7 +218,21 @@ public class PostService {
         return new org.springframework.data.domain.PageImpl<>(all.subList(from, to), PageRequest.of(safePage, safeSize), all.size());
     }
 
-    // 发帖：先做频率限制和敏感信息检测，再保存帖子主体、专属字段和图片。
+    // 查询当前用户收藏的帖子：按收藏记录找帖子，已删除的帖子不返回，同样做分页。
+    public Page<Map<String, Object>> myFavorites(String publicId, int page, int size) {
+        User user = currentUser(publicId);
+        List<Map<String, Object>> all = favoriteRepository.findByUserId(user.getId()).stream()
+                .map(favorite -> favorite.getPost())
+                .filter(post -> post.getStatus() == PostStatus.NORMAL)
+                .map(post -> toMap(post, false, publicId)).collect(Collectors.toList());
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int safePage = Math.max(page, 0);
+        int from = Math.min(safePage * safeSize, all.size());
+        int to = Math.min(from + safeSize, all.size());
+        return new org.springframework.data.domain.PageImpl<>(all.subList(from, to), PageRequest.of(safePage, safeSize), all.size());
+    }
+
+    // 发帖：先做频率限制，再保存帖子主体、专属字段和图片。
     @Transactional
     public Map<String, Object> create(String publicId, PostCreateRequest request, String ipHash) {
         User author = currentUser(publicId);
@@ -226,9 +243,6 @@ public class PostService {
         if (ipHash != null && postRepository.countByIpHashAndCreatedAtAfter(ipHash, oneHourAgo) >= postsPerHourPerIp) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "posting too frequently from this network");
         }
-        if (SensitiveInfoDetector.containsSensitiveInfo(request.title()) || SensitiveInfoDetector.containsSensitiveInfo(request.content())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content contains suspected phone number or ID card number, please remove it before posting");
-        }
         Post post = new Post();
         post.setCampus(campusRepository.findById(request.campusId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "campus not found")));
         post.setAuthor(author);
@@ -236,7 +250,7 @@ public class PostService {
         post.setTitle(request.title());
         post.setContent(request.content());
         post.setAnonymous(request.anonymous());
-        post.setContactInfo(request.contactInfo());
+        post.setShowContactInfo(request.showContactInfo());
         post.setStatus(PostStatus.NORMAL);
         post.setIpHash(ipHash);
         postRepository.save(post);
@@ -282,7 +296,7 @@ public class PostService {
 
     // 作者编辑自己的帖子：匿名帖子同样靠作者身份判断，不靠展示名字，本人不会因为匿名就失去编辑权。
     @Transactional
-    public Map<String, Object> editOwn(String publicId, Long id, String title, String content, String contactInfo) {
+    public Map<String, Object> editOwn(String publicId, Long id, String title, String content, Boolean showContactInfo) {
         User user = currentUser(publicId);
         Post post = postRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         if (!post.getAuthor().getId().equals(user.getId())) {
@@ -292,13 +306,10 @@ public class PostService {
             post.setTitle(title);
         }
         if (content != null && !content.isBlank()) {
-            if (SensitiveInfoDetector.containsSensitiveInfo(content)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content contains suspected phone number or ID card number");
-            }
             post.setContent(content);
         }
-        if (contactInfo != null) {
-            post.setContactInfo(contactInfo);
+        if (showContactInfo != null) {
+            post.setShowContactInfo(showContactInfo);
         }
         postRepository.save(post);
         return toMap(post, false, publicId);
@@ -316,15 +327,12 @@ public class PostService {
         postRepository.save(post);
     }
 
-    // 发表评论：同样做频率限制和敏感信息检测，匿名评论的规则和匿名帖子一致。
+    // 发表评论：同样做频率限制，匿名评论的规则和匿名帖子一致。
     @Transactional
     public Map<String, Object> addComment(String publicId, Long postId, String content, boolean anonymous) {
         User user = currentUser(publicId);
         if (commentRepository.countByAuthorIdAndCreatedAtAfter(user.getId(), LocalDateTime.now().minusHours(1)) >= commentsPerHour) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "commenting too frequently");
-        }
-        if (SensitiveInfoDetector.containsSensitiveInfo(content)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content contains suspected phone number or ID card number");
         }
         Post post = postRepository.findById(postId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         Comment comment = new Comment();

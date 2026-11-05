@@ -13,6 +13,7 @@
       <input v-model="securityAnswer" />
       <label>新密码</label>
       <input type="password" v-model="newPassword" />
+      <p>密码格式：至少 6 位，必须包含字母和数字</p>
       <label>确认新密码</label>
       <input type="password" v-model="confirmPassword" />
       <button @click="submit">重置密码</button>
@@ -52,8 +53,8 @@ async function loadQuestion() {
 }
 
 async function submit() {
-  if (newPassword.value.length < 6 || newPassword.value.length > 64) {
-    message.value = '新密码要 6 到 64 个字符'
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{6,64}$/.test(newPassword.value)) {
+    message.value = '新密码格式：至少 6 位，必须包含字母和数字'
     return
   }
   if (newPassword.value !== confirmPassword.value) {

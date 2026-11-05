@@ -10,6 +10,9 @@ import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import AdminView from '../views/AdminView.vue'
 import MyPostsView from '../views/MyPostsView.vue'
 import MyProfileView from '../views/MyProfileView.vue'
+import SearchView from '../views/SearchView.vue'
+import AnnouncementsView from '../views/AnnouncementsView.vue'
+import MyFavoritesView from '../views/MyFavoritesView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +22,9 @@ const router = createRouter({
     { path: '/publish', component: PublishView },
     { path: '/my', component: MyPostsView },
     { path: '/profile', component: MyProfileView },
+    { path: '/search', component: SearchView },
+    { path: '/announcements', component: AnnouncementsView },
+    { path: '/favorites', component: MyFavoritesView },
     { path: '/login', component: LoginView },
     { path: '/register', component: RegisterView },
     { path: '/forgot-password', component: ForgotPasswordView },

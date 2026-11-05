@@ -53,8 +53,10 @@ public class Post {
     @Column(nullable = false)
     private boolean anonymous = false;
 
-    @Column(length = 128)
-    private String contactInfo;
+    // 是否公开作者的联系方式：发帖时用户自己选，选了才公开，不选就算是作者本人填过联系方式，别人也看不到。
+    // 联系方式本身存在用户表里，不存在帖子表里，这里只存一个开关。
+    @Column(nullable = false)
+    private boolean showContactInfo = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)

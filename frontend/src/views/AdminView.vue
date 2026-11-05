@@ -10,6 +10,18 @@
       </div>
     </div>
     <div class="card">
+      <h3>公告</h3>
+      <label>标题</label>
+      <input v-model="announcementTitle" />
+      <label>内容</label>
+      <textarea v-model="announcementContent" rows="3"></textarea>
+      <button @click="publishAnnouncement">发布公告</button>
+      <p>{{ announcementMessage }}</p>
+      <div v-for="item in announcements" :key="item.id">
+        <p>{{ item.title }} · {{ item.createdAt }} <button @click="deleteAnnouncementItem(item.id)">删除</button></p>
+      </div>
+    </div>
+    <div class="card">
       <h3>用户</h3>
       <div v-for="user in users" :key="user.publicId">
         <p>{{ user.nickname }} · {{ user.status }} · 封禁到：{{ user.banUntil || '永久或未封禁' }} <button @click="ban(user.publicId, 'TEMPORARY')">临时封禁7天</button> <button @click="ban(user.publicId, 'PERMANENT')">永久封禁</button> <button @click="unban(user.publicId)">解封</button> <button @click="viewIdentity(user.publicId)">查看学号</button></p>
@@ -32,9 +44,13 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { adminAuditLogs, adminBanUser, adminDeletePost, adminHandleReport, adminPosts, adminReports, adminUnbanUser, adminUsers, adminViewIdentity } from '../api/posts.js'
+import { adminAuditLogs, adminBanUser, adminDeletePost, adminHandleReport, adminPosts, adminReports, adminUnbanUser, adminUsers, adminViewIdentity, createAnnouncement, deleteAnnouncement, listAnnouncements } from '../api/posts.js'
 
 const posts = ref([])
+const announcements = ref([])
+const announcementTitle = ref('')
+const announcementContent = ref('')
+const announcementMessage = ref('')
 const users = ref([])
 const reports = ref([])
 const logs = ref([])
@@ -50,12 +66,32 @@ async function load() {
     reports.value = reportsData.content || reportsData
     const logsData = (await adminAuditLogs()).data
     logs.value = logsData.content || logsData
+    const announcementsData = (await listAnnouncements()).data
+    announcements.value = announcementsData
   } catch (e) {
     posts.value = []
     users.value = []
     reports.value = []
     logs.value = []
   }
+}
+
+async function publishAnnouncement() {
+  if (!announcementTitle.value.trim() || !announcementContent.value.trim()) {
+    announcementMessage.value = '标题和内容都要填'
+    return
+  }
+  await createAnnouncement({ title: announcementTitle.value, content: announcementContent.value })
+  announcementTitle.value = ''
+  announcementContent.value = ''
+  announcementMessage.value = ''
+  await load()
+}
+
+async function deleteAnnouncementItem(id) {
+  if (!confirm('确定删除这条公告吗？')) return
+  await deleteAnnouncement(id)
+  await load()
 }
 
 async function deletePost(id) {

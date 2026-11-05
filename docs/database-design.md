@@ -43,9 +43,9 @@
 - category：LOST、SECONDHAND、QA、VENT
 - author_id：作者，匿名帖子也保留这个字段，方便管理员追责，但公开接口不暴露
 - title：标题
-- content：正文，出现疑似手机号和身份证号格式时会被拦截
+- content：正文，手机号和身份证号不再由系统直接拦截
 - anonymous：是否匿名，匿名只是一个展示开关，不是独立身份
-- contact_info：联系方式，二手和失物常用，是用户主动留的，正文检测不针对这个字段
+- contact_info：帖子表里已经不用这个字段了，联系方式存在用户表里，帖子只存一个是否公开的开关
 - status：NORMAL、DELETED，管理员删帖改为 DELETED，不物理删除
 - ip_hash：发帖网络地址的哈希值，只用于频率统计和辅助风控，不存原始地址，也不作为唯一封禁依据
 - created_at、updated_at
@@ -86,7 +86,7 @@
 - id：主键
 - post_id：帖子
 - author_id：作者，匿名评论同样保留作者，但公开接口不暴露
-- content：内容，出现疑似手机号和身份证号格式时会被拦截
+- content：内容，手机号和身份证号不再由系统直接拦截
 - anonymous：是否匿名
 - status：NORMAL、DELETED，管理员删评论改为 DELETED
 - created_at

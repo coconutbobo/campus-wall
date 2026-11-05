@@ -21,7 +21,8 @@ services:
   backend:
     build: ./backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/campus_wall?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai
+      # allowPublicKeyRetrieval=true：MySQL 8 默认用 caching_sha2_password，容器重启后密码缓存清空，第一次登录要取公钥，不加会报 Public Key Retrieval is not allowed。
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/campus_wall?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-campus_wall}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change-me-local-only}
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string-before-deploy}

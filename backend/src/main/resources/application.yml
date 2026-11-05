@@ -1,7 +1,9 @@
 # 校园墙项目：校园墙项目文件：application.yml。
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/campus_wall?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai}
+    # allowPublicKeyRetrieval=true 是必须的：MySQL 8 默认用 caching_sha2_password，容器重启后密码缓存清空，
+    # 第一次登录就要取公钥，不加这一项就会报 Public Key Retrieval is not allowed，后端起不来。只用于本地开发。
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/campus_wall?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:

@@ -6,6 +6,7 @@ import PostDetailView from '../views/PostDetailView.vue'
 import PublishView from '../views/PublishView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import AdminView from '../views/AdminView.vue'
 import MyPostsView from '../views/MyPostsView.vue'
 
@@ -18,6 +19,7 @@ const router = createRouter({
     { path: '/my', component: MyPostsView },
     { path: '/login', component: LoginView },
     { path: '/register', component: RegisterView },
+    { path: '/forgot-password', component: ForgotPasswordView },
     { path: '/admin', component: AdminView }
   ]
 })

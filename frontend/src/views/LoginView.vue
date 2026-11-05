@@ -8,6 +8,7 @@
     <input type="password" v-model="password" />
     <button @click="submit">登录</button>
     <p>还没有账号？<router-link to="/register">去注册</router-link></p>
+    <p>忘记密码？<router-link to="/forgot-password">用密保问题重置</router-link></p>
     <p>{{ message }}</p>
   </div>
 </template>

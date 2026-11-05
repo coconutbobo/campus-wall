@@ -33,6 +33,35 @@ export function myPosts() {
   return client.get('/me/posts')
 }
 
+// 我的资料：只返回公开 ID、昵称、角色和校区名，不返回学号。
+export function getProfile() {
+  return client.get('/me/profile')
+}
+
+// 改资料：只改昵称，学号不给用户改；昵称 30 天只能改一次，冷却期内后端会拒绝并告诉下次可改日期。
+export function updateProfile(payload) {
+  return client.patch('/me/profile', payload)
+}
+
+// 改密码：必须登录，先输原密码，改完旧令牌失效，要重新登录。
+export function changePassword(payload) {
+  return client.patch('/me/password', payload)
+}
+
+// 密保问题：注册页从后端拿预设问题列表，忘密码时按学号查用户注册时选的问题。
+export function listSecurityQuestions() {
+  return client.get('/auth/security-questions')
+}
+
+export function getSecurityQuestion(studentId) {
+  return client.get('/auth/security-question', { params: { studentId } })
+}
+
+// 忘密码重置：不用登录，传学号、密保答案和新密码，答案对了才能改。
+export function forgotPassword(payload) {
+  return client.post('/auth/forgot-password', payload)
+}
+
 // 校区订阅：订阅后首页可以选择只看订阅校区的内容。
 export function listSubscriptions() {
   return client.get('/me/subscriptions')

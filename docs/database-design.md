@@ -13,10 +13,13 @@
 
 - id：主键，只在数据库内部做关联，不出现在公开接口里
 - public_id：公开 ID，随机生成，与学号没有任何推导关系，公开接口只返回这个
-- student_id：学号，唯一，只用来登录，第一版不做学校系统核验，注销后会被替换成不可恢复的占位值
-- nickname：昵称，发帖选择非匿名时显示这个昵称
+- student_id：学号，唯一，只用来登录，第一版不做学校系统核验，注册时必须是 11 位数字，注册后用户自己不能改，注销后会被替换成不可恢复的占位值
+- nickname：昵称，发帖选择非匿名时显示这个昵称，30 天只能改一次
 - password_hash：BCrypt 哈希，不存明文
-- token_version：令牌版本号，注销或封禁后递增，旧令牌会立刻失效
+- security_question：注册时选的密保问题，从预设列表里选
+- security_answer_hash：密保答案的 BCrypt 哈希，不存明文，忘密码时靠它核对身份
+- nickname_changed_at：上次改昵称的时间，注册时为空，第一次改昵称不受 30 天限制，改过之后要等满 30 天
+- token_version：令牌版本号，注销、封禁或改密码后递增，旧令牌会立刻失效
 - role：USER、ADMIN
 - status：ACTIVE、BANNED、DELETED，封禁以账号为主
 - ban_until：临时封禁截止时间，永久封禁时为空，到期后自动恢复

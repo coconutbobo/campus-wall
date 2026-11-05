@@ -7,8 +7,11 @@
 - GET /api/campuses：校区列表，只返回校区主键、名称和编码，不返回敏感信息
 - GET /api/posts?campusId=&campusIds=&subscribedOnly=&category=&keyword=&page=&size=：帖子列表，分页返回，每页最多 50 条；subscribedOnly 为 true 时只返回当前用户订阅的校区帖子
 - GET /api/posts/{id}：帖子详情，包含图片、专属字段、正常状态的评论
-- POST /api/auth/register：学号、昵称、密码、校区注册，返回公开 ID 和令牌，不返回学号
-- POST /api/auth/login：学号、密码登录，返回公开 ID 和令牌，不返回学号
+- POST /api/auth/register：学号、昵称、密码、校区、密保问题和密保答案注册，返回公开 ID 和令牌，不返回学号；学号只能是 11 位数字，密保问题必须从预设列表里选，答案必填，密码和密保答案都只存 BCrypt 加密值
+- POST /api/auth/login：学号、密码登录，返回公开 ID 和令牌，不返回学号；登录时学号不限 11 位数字，老账号（比如 owner）还能正常登录
+- GET /api/auth/security-questions：密保问题预设列表，注册页用
+- GET /api/auth/security-question?studentId=：按学号查该账号注册时选的密保问题，只返回问题，不返回答案
+- POST /api/auth/forgot-password：忘密码重置，不用登录，传学号、密保答案和新密码，答案对了才能改，改完旧令牌全部失效，要重新登录；没有设置密保问题的老账号要联系管理员
 
 ## 登录后接口
 
@@ -18,6 +21,9 @@
 - PATCH /api/posts/{id}：作者编辑自己的帖子，匿名帖子同样靠登录身份判断
 - DELETE /api/posts/{id}：作者自己删帖，改为 DELETED
 - GET /api/me/posts：当前用户自己的帖子列表，包括匿名帖子，分页返回
+- GET /api/me/profile：当前用户自己的资料，只返回公开 ID、昵称、角色、校区名和下次可改昵称的日期，不返回学号；没改过昵称时下次可改日期为空
+- PATCH /api/me/profile：只改自己的昵称，传 nickname；学号不给用户改，传了 studentId 也会被后端直接忽略；昵称 30 天只能改一次，传的昵称和现在一样不算改，冷却期内返回 400 和下次可改日期
+- PATCH /api/me/password：改自己的密码，必须先输对原密码 currentPassword，新密码 newPassword 6 到 64 个字符，改完旧令牌全部失效，要重新登录，原密码错了返回 400，不会把人踢下线
 - GET /api/me/subscriptions：当前用户的校区订阅列表
 - POST /api/me/subscriptions：订阅一个校区，传 campusId
 - DELETE /api/me/subscriptions/{campusId}：取消订阅一个校区

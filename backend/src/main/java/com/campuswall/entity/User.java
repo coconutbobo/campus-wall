@@ -51,6 +51,19 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
+    // 密保问题：注册时从预设列表里选一个，找回密码时要先按学号查出这个问题，再核对答案。
+    // 只存问题本身，不存答案明文，答案用 BCrypt 加密后存在下面这个字段里。
+    @Column(length = 128)
+    private String securityQuestion;
+
+    // 密保答案的 BCrypt 加密值，和密码一样只存加密结果，数据库里永远看不到答案原文。
+    // 老账号（比如注册时还没有密保的 owner 账号）这里是空的，忘密码时要提示联系管理员。
+    private String securityAnswerHash;
+
+    // 上次改昵称的时间：注册不算改，所以新账号这里是空的，第一次改昵称不受 30 天限制；
+    // 改过一次之后，下次要等满 30 天才能再改，后端按这个时间算下次可改日期。
+    private LocalDateTime nicknameChangedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private Role role = Role.USER;

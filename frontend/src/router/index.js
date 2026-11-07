@@ -13,12 +13,14 @@ import MyProfileView from '../views/MyProfileView.vue'
 import SearchView from '../views/SearchView.vue'
 import AnnouncementsView from '../views/AnnouncementsView.vue'
 import MyFavoritesView from '../views/MyFavoritesView.vue'
+import EditPostView from '../views/EditPostView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: HomeView },
     { path: '/post/:id', component: PostDetailView },
+    { path: '/post/:id/edit', component: EditPostView },
     { path: '/publish', component: PublishView },
     { path: '/my', component: MyPostsView },
     { path: '/profile', component: MyProfileView },

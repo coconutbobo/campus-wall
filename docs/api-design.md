@@ -18,7 +18,7 @@
 - POST /api/auth/logout：注销登录，令牌版本号递增，旧令牌立刻失效，前端也要清除本地令牌
 - DELETE /api/auth/me：注销账号，学号会被清除，自己的帖子和评论会改为匿名展示
 - POST /api/posts：发帖，包含板块专属字段和图片地址，每人每小时最多 10 条，同一网络地址哈希每小时最多 50 条
-- PATCH /api/posts/{id}：作者编辑自己的帖子，匿名帖子同样靠登录身份判断
+- PATCH /api/posts/{id}：作者编辑自己的帖子，匿名帖子同样靠登录身份判断；和发帖用同一套字段：标题、内容、匿名、联系方式公开、图片（整份替换的 imageUrls）和当前板块的专属字段；校区和板块不能改
 - DELETE /api/posts/{id}：作者自己删帖，改为 DELETED
 - GET /api/me/posts：当前用户自己的帖子列表，包括匿名帖子，分页返回
 - GET /api/me/profile：当前用户自己的资料，只返回公开 ID、昵称、角色、校区名、下次可改昵称的日期、是否已设密保和当前选的密保问题，不返回学号和密保答案；没改过昵称时下次可改日期为空
@@ -34,6 +34,7 @@
 - POST /api/posts/{id}/report：举报帖子，带原因
 - POST /api/posts/comments/{commentId}/report：举报评论，带原因
 - POST /api/uploads：上传图片，返回图片地址，只接受 JPEG、PNG、GIF、WebP 的真实文件头，拒绝 SVG 和其他类型，单张不超过 5MB
+
 
 ## 管理员接口
 
@@ -72,3 +73,7 @@
 - POST /api/uploads：传图片，单张不超过 5MB；Spring 的上传上限也在 application.yml 里配成了单文件 5MB、单次请求 10MB，不然超过 1MB 默认上限的图片根本到不了上传接口
 - 帖子状态只在前端翻译成汉语显示：NORMAL 是正常，DELETED 按删帖人分已被用户删除 / 已被管理员删除（老数据没记删帖人时只显示已删除）；用户状态：ACTIVE 是正常，BANNED 按有没有截止时间分临时封禁 / 永久封禁，DELETED 是已注销；举报状态：PENDING 是待处理，HANDLED 是已处理
 - GET /api/admin/users/{publicId}/identity：管理员按帖子查作者学号也走这个接口，匿名帖子和已注销用户都能查，注销用户的学号会去掉 _delete 后缀再返回
+
+## 补充
+
+- `GET /api/posts/{id}`：管理员请求时，匿名帖子会多返回 `authorNickname`（作者真实昵称）。

@@ -12,8 +12,9 @@
     <div v-if="post.location">地点：{{ post.location }}</div>
     <div v-if="post.solved !== undefined">状态：{{ post.solved ? '已解决' : '未解决' }}</div>
     <div class="images" v-if="post.images && post.images.length">
-      <img v-for="url in post.images" :key="url" :src="url" alt="" />
+      <img v-for="url in post.images" :key="url" :src="url" alt="" @click.stop="viewerUrl = url" />
     </div>
+    <ImageViewer v-if="viewerUrl" :src="viewerUrl" @close="viewerUrl = null" />
     <div class="meta">
       <span>点赞 {{ post.likeCount }}</span>
       <span>收藏 {{ post.favoriteCount }}</span>
@@ -23,11 +24,15 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ImageViewer from './ImageViewer.vue'
 
 const props = defineProps({ post: { type: Object, required: true } })
 const router = useRouter()
+
+// 正在查看的完整图片地址，有值就弹出查看器，关掉就清空。
+const viewerUrl = ref(null)
 
 const labels = { LOST: '失物招领', SECONDHAND: '二手交易', QA: '提问求助', VENT: '喝茶闲聊' }
 const categoryLabel = computed(() => labels[props.post.category] || props.post.category)
@@ -40,5 +45,5 @@ function goDetail() {
 <style scoped>
 .card { cursor: pointer; }
 .meta { display: flex; gap: 10px; color: var(--muted, #666); font-size: 13px; }
-.images img { width: 120px; height: 120px; object-fit: cover; margin-right: 8px; border-radius: 8px; }
+.images img { width: 120px; height: 120px; object-fit: cover; margin-right: 8px; border-radius: 8px; cursor: zoom-in; }
 </style>

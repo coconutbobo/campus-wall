@@ -3,6 +3,7 @@ package com.campuswall.service;
 // 帖子核心服务：匿名、频率限制和本人管理都在这里。
 // 手机号和身份证号不再拦截：用户自己在正文里写什么，由举报和管理来处理，系统不再靠正则直接拦掉。
 // 匿名只是展示规则：公开接口里匿名帖子只返回匿名用户和空的作者公开 ID，不返回任何能把不同匿名帖子关联到同一个人的标识。
+// 唯一的例外是管理员看帖子详情：多返回一个 authorNickname（作者真实昵称），普通用户拿不到这个字段。
 // 作者本人除外：本人登录后在自己的帖子列表和详情里能看到这是自己的帖子，也能编辑和删除，不会因为匿名就失去管理权。
 // 频率限制用数据库计数实现：每人每小时最多发 10 条帖子、30 条评论，同一网络地址哈希每小时最多发 50 条帖子，IP 只是辅助，不单独作为封禁依据。
 import com.campuswall.dto.PostCreateRequest;
@@ -14,6 +15,7 @@ import com.campuswall.entity.Post;
 import com.campuswall.entity.PostImage;
 import com.campuswall.entity.PostLike;
 import com.campuswall.entity.PostStatus;
+import com.campuswall.entity.Role;
 import com.campuswall.entity.QaDetail;
 import com.campuswall.entity.SecondhandDetail;
 import com.campuswall.entity.User;
@@ -29,6 +31,7 @@ import com.campuswall.repository.QaDetailRepository;
 import com.campuswall.repository.SecondhandDetailRepository;
 import com.campuswall.repository.UserRepository;
 import com.campuswall.repository.VentDetailRepository;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
@@ -98,7 +101,12 @@ public class PostService {
     }
 
     // 把帖子转成返回给前端的数据：匿名时作者公开 ID 为空，已注销作者显示为已注销用户，本人帖子会多一个是本人的标记。
+    // 管理员看详情时例外：匿名帖子会多一个 authorNickname（作者真实昵称），只给管理员，不给普通用户。
     public Map<String, Object> toMap(Post post, boolean withComments, String currentPublicId) {
+        return toMap(post, withComments, currentPublicId, false);
+    }
+
+    public Map<String, Object> toMap(Post post, boolean withComments, String currentPublicId, boolean adminView) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", post.getId());
         map.put("campusId", post.getCampus().getId());
@@ -112,6 +120,10 @@ public class PostService {
         if (post.isAnonymous()) {
             map.put("displayName", "匿名用户");
             map.put("authorPublicId", null);
+            // 管理员在详情里要能查到匿名作者的真实昵称；作者已注销时昵称已经被清空，就不给了。
+            if (adminView && !post.getAuthor().getStatus().name().equals("DELETED")) {
+                map.put("authorNickname", post.getAuthor().getNickname());
+            }
         } else if (post.getAuthor().getStatus().name().equals("DELETED")) {
             map.put("displayName", "已注销用户");
             map.put("authorPublicId", null);
@@ -199,12 +211,18 @@ public class PostService {
     }
 
     // 查询帖子详情：包含图片、专属字段和评论，已删除的帖子当作不存在处理。
+    // 请求人是管理员时多返回匿名作者的真实昵称；没登录时 currentPublicId 为空，直接按普通视角返回。
     public Map<String, Object> detail(Long id, String currentPublicId) {
         Post post = postRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         if (post.getStatus() != PostStatus.NORMAL) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found");
         }
-        return toMap(post, true, currentPublicId);
+        boolean adminView = false;
+        if (currentPublicId != null) {
+            User current = userRepository.findByPublicId(currentPublicId).orElse(null);
+            adminView = current != null && current.getRole() == Role.ADMIN;
+        }
+        return toMap(post, true, currentPublicId, adminView);
     }
 
     // 查询当前用户自己的帖子：包括匿名帖子，本人能看到这是自己的，也能从这里去编辑和删除。
@@ -297,20 +315,87 @@ public class PostService {
 
     // 作者编辑自己的帖子：匿名帖子同样靠作者身份判断，不靠展示名字，本人不会因为匿名就失去编辑权。
     @Transactional
-    public Map<String, Object> editOwn(String publicId, Long id, String title, String content, Boolean showContactInfo) {
+    // 作者编辑自己的帖子：和发帖用同一套字段，标题、内容、匿名、联系方式公开、图片和当前板块的专属字段都能改。
+    // 校区和板块发完不能改，不然帖子会跑到别的板块里去；图片是整份替换，前端把留下的旧图和新传的图一起发过来。
+    @Transactional
+    public Map<String, Object> editOwn(String publicId, Long id, Map<String, Object> body) {
         User user = currentUser(publicId);
         Post post = postRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         if (!post.getAuthor().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "not owner");
         }
+        String title = body.get("title") == null ? null : String.valueOf(body.get("title"));
+        String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
         if (title != null && !title.isBlank()) {
             post.setTitle(title);
         }
         if (content != null && !content.isBlank()) {
             post.setContent(content);
         }
-        if (showContactInfo != null) {
-            post.setShowContactInfo(showContactInfo);
+        if (body.get("anonymous") != null) {
+            post.setAnonymous(Boolean.parseBoolean(String.valueOf(body.get("anonymous"))));
+        }
+        if (body.get("showContactInfo") != null) {
+            post.setShowContactInfo(Boolean.parseBoolean(String.valueOf(body.get("showContactInfo"))));
+        }
+        // 图片整份替换：先删掉原来的，再按顺序存新的，空列表就是把图全删掉。
+        if (body.get("imageUrls") instanceof List<?> urls) {
+            postImageRepository.deleteAll(postImageRepository.findByPostIdOrderBySortOrderAsc(post.getId()));
+            int order = 0;
+            for (Object url : urls) {
+                PostImage image = new PostImage();
+                image.setPost(post);
+                image.setImageUrl(String.valueOf(url));
+                image.setSortOrder(order++);
+                postImageRepository.save(image);
+            }
+        }
+        // 专属字段只改当前板块的那一份，别的板块没有对应的表，不用动。
+        if (post.getCategory() == CategoryCode.LOST) {
+            LostDetail detail = lostDetailRepository.findById(post.getId()).orElseGet(() -> {
+                LostDetail created = new LostDetail();
+                created.setPost(post);
+                return created;
+            });
+            if (body.get("lostKind") != null) {
+                detail.setKind(String.valueOf(body.get("lostKind")));
+            }
+            if (body.get("location") != null) {
+                detail.setLocation(String.valueOf(body.get("location")));
+            }
+            if (body.get("happenedAt") != null && !String.valueOf(body.get("happenedAt")).isBlank()) {
+                String raw = String.valueOf(body.get("happenedAt"));
+                if (raw.length() == 16) {
+                    raw = raw + ":00";
+                }
+                detail.setHappenedAt(LocalDateTime.parse(raw));
+            }
+            lostDetailRepository.save(detail);
+        }
+        if (post.getCategory() == CategoryCode.SECONDHAND) {
+            SecondhandDetail detail = secondhandDetailRepository.findById(post.getId()).orElseGet(() -> {
+                SecondhandDetail created = new SecondhandDetail();
+                created.setPost(post);
+                return created;
+            });
+            if (body.get("price") != null && !String.valueOf(body.get("price")).isBlank()) {
+                detail.setPrice(new BigDecimal(String.valueOf(body.get("price"))));
+            }
+            if (body.get("conditionText") != null) {
+                detail.setConditionText(String.valueOf(body.get("conditionText")));
+            }
+            secondhandDetailRepository.save(detail);
+        }
+        if (post.getCategory() == CategoryCode.VENT) {
+            VentDetail detail = ventDetailRepository.findById(post.getId()).orElseGet(() -> {
+                VentDetail created = new VentDetail();
+                created.setPost(post);
+                return created;
+            });
+            if (body.get("mood") != null) {
+                detail.setMood(String.valueOf(body.get("mood")));
+            }
+            ventDetailRepository.save(detail);
         }
         postRepository.save(post);
         return toMap(post, false, publicId);

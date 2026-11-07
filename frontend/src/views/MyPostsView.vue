@@ -8,7 +8,7 @@
       <h3>{{ post.title }}</h3>
       <p>{{ post.content }}</p>
       <p>展示：{{ post.anonymous ? '匿名用户' : post.displayName }} · 状态：{{ postStatusText(post) }}</p>
-      <button @click="edit(post)">编辑</button>
+      <button @click="router.push('/post/' + post.id + '/edit')">编辑</button>
       <button @click="remove(post.id)">删除</button>
       <button @click="goDetail(post.id)">查看详情</button>
     </div>
@@ -19,7 +19,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteOwnPost, editPost, myPosts } from '../api/posts.js'
+import { deleteOwnPost, myPosts } from '../api/posts.js'
 import { postStatusText } from '../utils/statusText.js'
 
 const router = useRouter()
@@ -37,15 +37,6 @@ async function load() {
 
 function goDetail(id) {
   router.push('/post/' + id)
-}
-
-async function edit(post) {
-  const title = prompt('新标题', post.title)
-  if (title === null) return
-  const content = prompt('新内容', post.content)
-  if (content === null) return
-  await editPost(post.id, { title, content })
-  await load()
 }
 
 async function remove(id) {

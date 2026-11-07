@@ -63,12 +63,10 @@ public class PostController {
     }
 
     // 作者编辑自己的帖子：匿名帖子同样靠作者身份判断，本人不会因为匿名就失去编辑权。
+    // 编辑页和发帖用同一套字段，整个 body 交给服务层，校区和板块不在里面改。
     @PatchMapping("/{id}")
     public Map<String, Object> editOwn(Authentication authentication, @PathVariable Long id, @RequestBody Map<String, Object> body) {
-        String title = body.get("title") == null ? null : String.valueOf(body.get("title"));
-        String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
-        Boolean showContactInfo = body.get("showContactInfo") == null ? null : Boolean.parseBoolean(String.valueOf(body.get("showContactInfo")));
-        return postService.editOwn(authentication.getName(), id, title, content, showContactInfo);
+        return postService.editOwn(authentication.getName(), id, body);
     }
 
     // 作者删除自己的帖子。

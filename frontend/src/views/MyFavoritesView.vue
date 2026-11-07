@@ -2,7 +2,6 @@
 <template>
   <div>
     <h2>我的收藏</h2>
-    <p>这里是你收藏过的帖子，点进详情页再点一次收藏就能取消收藏。</p>
     <PostCard v-for="post in posts" :key="post.id" :post="post" />
     <p v-if="posts.length === 0">你还没有收藏过帖子。</p>
   </div>

@@ -43,8 +43,8 @@
     <input type="file" accept="image/*" multiple @change="onFiles" />
     <label><input type="checkbox" v-model="form.anonymous" style="width:auto;" /> 匿名发布</label>
     <label><input type="checkbox" v-model="form.showContactInfo" style="width:auto;" /> 公开我的联系方式</label>
-    <p v-if="hasContactInfo">联系方式是“我的资料”里填的那一个，勾了别人才看得到，不勾就不显示。</p>
-    <p v-else>你还没有在“我的资料”里填联系方式，勾了公开也不会显示，先去“我的资料”里填一个。</p>
+    <p v-if="hasContactInfo"></p>
+    <p v-else>你还没有在“我的资料”里填联系方式，勾了公开也不会显示，先去“我的资料”里填一个吧~</p>
     <label><input type="checkbox" v-model="confirmed" style="width:auto;" /> 我确认无违规内容</label>
     <button @click="submit">发布</button>
     <p>{{ message }}</p>

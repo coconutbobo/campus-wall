@@ -2,7 +2,6 @@
 <template>
   <div class="card">
     <h2>忘记密码</h2>
-    <p>输入学号，先查出你注册时选的密保问题，答对了才能设新密码。</p>
     <label>学号</label>
     <input v-model="studentId" maxlength="11" placeholder="注册时填的 11 位数字学号" />
     <button @click="loadQuestion" v-if="!question">下一步</button>
@@ -12,10 +11,10 @@
       <label>密保答案</label>
       <input v-model="securityAnswer" />
       <label>新密码</label>
-      <input type="password" v-model="newPassword" />
-      <p>密码格式：至少 6 位，必须包含字母和数字</p>
+      <input type="password" v-model="newPassword" placeholder="至少 6 位，必须包含字母和数字"/>
+    
       <label>确认新密码</label>
-      <input type="password" v-model="confirmPassword" />
+      <input type="password" v-model="confirmPassword"placeholder="至少 6 位，必须包含字母和数字" />
       <button @click="submit">重置密码</button>
     </div>
     <p>想起密码了？<router-link to="/login">回登录页</router-link></p>

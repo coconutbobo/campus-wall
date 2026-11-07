@@ -19,7 +19,7 @@
         <button @click="report">举报</button>
         <button v-if="post.isMine" @click="router.push('/post/' + post.id + '/edit')">编辑我的帖子</button>
       </div>
-      <p v-if="post.isMine">这是你自己的帖子，匿名也不会让你失去编辑和删除的权利。</p>
+      
     </div>
     <div class="card">
       <h3>评论</h3>

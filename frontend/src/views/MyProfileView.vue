@@ -13,7 +13,6 @@
     </div>
     <div class="card">
       <h3>联系方式</h3>
-      <p>联系方式填一次就永久保存，发帖时你自己选要不要公开它，不公开别人就看不到。</p>
       <label>联系方式</label>
       <input v-model="contactInfo" maxlength="128" placeholder="例如：微信号、手机号、QQ 号" />
       <button @click="saveProfile">保存资料</button>
@@ -21,14 +20,13 @@
     </div>
     <div class="card">
       <h3>更改密码</h3>
-      <p>改密码要先输对原密码，改完要重新登录一次。</p>
+   
       <label>原密码</label>
       <input type="password" v-model="currentPassword" />
       <label>新密码</label>
-      <input type="password" v-model="newPassword" />
-      <p>密码格式：至少 6 位，必须包含字母和数字</p>
+      <input type="password" v-model="newPassword" placeholder="至少 6 位，必须包含字母和数字"/>
       <label>确认新密码</label>
-      <input type="password" v-model="confirmPassword" />
+      <input type="password" v-model="confirmPassword" placeholder="至少 6 位，必须包含字母和数字"/>
       <button @click="savePassword">更改密码</button>
       <p>{{ passwordMessage }}</p>
     </div>

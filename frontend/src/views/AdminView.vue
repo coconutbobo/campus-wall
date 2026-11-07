@@ -2,7 +2,7 @@
 <template>
   <div>
     <h2>管理后台</h2>
-    <p>只有管理员账号可以正常调用下面接口，普通账号会返回无权限。用户列表里不显示学号，查看学号要单独填理由，那次查看会被记进审计日志。</p>
+    
     <div class="card">
       <h3>帖子</h3>
       <div v-for="post in posts" :key="post.id">
@@ -11,11 +11,7 @@
     </div>
     <div class="card">
       <h3>公告</h3>
-      <label>标题</label>
-      <input v-model="announcementTitle" />
-      <label>内容</label>
-      <textarea v-model="announcementContent" rows="3"></textarea>
-      <button @click="publishAnnouncement">发布公告</button>
+      
       <p>{{ announcementMessage }}</p>
       <div v-for="item in announcements" :key="item.id">
         <p>{{ item.title }} · {{ item.createdAt }} <button @click="deleteAnnouncementItem(item.id)">删除</button></p>

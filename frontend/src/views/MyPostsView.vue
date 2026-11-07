@@ -3,7 +3,7 @@
 <template>
   <div>
     <h2>我的帖子</h2>
-    <p>匿名帖子在这里会标注仅你可见这是你的帖子，别人只会看到匿名用户，你不会因为匿名就失去管理权。</p>
+  
     <div class="card" v-for="post in posts" :key="post.id">
       <h3>{{ post.title }}</h3>
       <p>{{ post.content }}</p>

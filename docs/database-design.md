@@ -46,6 +46,7 @@
 - content：正文，手机号和身份证号不再由系统直接拦截
 - anonymous：是否匿名，匿名只是一个展示开关，不是独立身份
 - contact_info：帖子表里已经不用这个字段了，联系方式存在用户表里，帖子只存一个是否公开的开关
+- deleted_by：谁删的帖子，USER 是作者自己删的，ADMIN 是管理员删的，空就是以前删的时候没记
 - status：NORMAL、DELETED，管理员删帖改为 DELETED，不物理删除
 - ip_hash：发帖网络地址的哈希值，只用于频率统计和辅助风控，不存原始地址，也不作为唯一封禁依据
 - created_at、updated_at
@@ -69,7 +70,7 @@
 - solved：是否已解决
 - accepted_comment_id：被采纳的评论，可为空
 
-## vent_details 吐槽专属字段
+## vent_details 喝茶闲聊专属字段
 
 - post_id：主键，同时是 posts 的外键
 - mood：心情标签，可为空，方便以后扩展

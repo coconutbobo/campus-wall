@@ -62,6 +62,11 @@ public class Post {
     @Column(nullable = false, length = 16)
     private PostStatus status = PostStatus.NORMAL;
 
+    // 谁删的帖子：USER 是作者自己删的，ADMIN 是管理员删的，空就是老数据（以前删的时候没记）。
+    // 前端靠这个区分显示“已被用户删除”和“已被管理员删除”，只看状态分不出来。
+    @Column(length = 16)
+    private String deletedBy;
+
     // 发帖网络地址的哈希值，只用于频率统计和辅助风控，不存原始地址。
     @Column(length = 64)
     private String ipHash;

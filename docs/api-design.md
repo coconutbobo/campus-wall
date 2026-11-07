@@ -68,3 +68,7 @@
 - GET /api/me/profile：还返回联系方式 contactInfo 和当前选的密保问题；PATCH /api/me/profile：改昵称和联系方式，联系方式随时能改、不受昵称 30 天冷却限制
 - PATCH /api/me/password 和 PATCH /api/me/security-question：原密码输错返回 400，原密码错误
 - DELETE /api/auth/me：注销账号时学号保留原学号再加 _delete，密码、联系方式和密保清空，自己的帖子和评论改为匿名
+
+- POST /api/uploads：传图片，单张不超过 5MB；Spring 的上传上限也在 application.yml 里配成了单文件 5MB、单次请求 10MB，不然超过 1MB 默认上限的图片根本到不了上传接口
+- 帖子状态只在前端翻译成汉语显示：NORMAL 是正常，DELETED 按删帖人分已被用户删除 / 已被管理员删除（老数据没记删帖人时只显示已删除）；用户状态：ACTIVE 是正常，BANNED 按有没有截止时间分临时封禁 / 永久封禁，DELETED 是已注销；举报状态：PENDING 是待处理，HANDLED 是已处理
+- GET /api/admin/users/{publicId}/identity：管理员按帖子查作者学号也走这个接口，匿名帖子和已注销用户都能查，注销用户的学号会去掉 _delete 后缀再返回

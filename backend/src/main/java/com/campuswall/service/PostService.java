@@ -124,6 +124,7 @@ public class PostService {
         map.put("contactInfo", post.isShowContactInfo() && !post.getAuthor().getStatus().name().equals("DELETED") ? post.getAuthor().getContactInfo() : null);
         map.put("showContactInfo", post.isShowContactInfo());
         map.put("status", post.getStatus().name());
+        map.put("deletedBy", post.getDeletedBy());
         map.put("createdAt", post.getCreatedAt() == null ? null : post.getCreatedAt().toString());
         map.put("likeCount", postLikeRepository.countByPostId(post.getId()));
         map.put("favoriteCount", favoriteRepository.countByPostId(post.getId()));
@@ -324,6 +325,7 @@ public class PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "not owner");
         }
         post.setStatus(PostStatus.DELETED);
+        post.setDeletedBy("USER");
         postRepository.save(post);
     }
 

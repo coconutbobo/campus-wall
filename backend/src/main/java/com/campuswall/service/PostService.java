@@ -313,9 +313,7 @@ public class PostService {
         return toMap(post, false, publicId);
     }
 
-    // 作者编辑自己的帖子：匿名帖子同样靠作者身份判断，不靠展示名字，本人不会因为匿名就失去编辑权。
-    @Transactional
-    // 作者编辑自己的帖子：和发帖用同一套字段，标题、内容、匿名、联系方式公开、图片和当前板块的专属字段都能改。
+    // 作者编辑自己的帖子：和发帖用同一套字段，标题、内容、匿名、联系方式公开、图片和当前板块的专属字段都能改；匿名帖子同样靠作者身份判断，本人不会因为匿名就失去编辑权。
     // 校区和板块发完不能改，不然帖子会跑到别的板块里去；图片是整份替换，前端把留下的旧图和新传的图一起发过来。
     @Transactional
     public Map<String, Object> editOwn(String publicId, Long id, Map<String, Object> body) {

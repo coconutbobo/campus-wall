@@ -2,11 +2,13 @@
 <template>
   <div class="card">
     <h2>登录</h2>
-    <label>学号</label>
-    <input v-model="studentId" />
-    <label>密码</label>
-    <input type="password" v-model="password" />
-    <button @click="submit">登录</button>
+    <form @submit.prevent="submit">
+      <label>学号</label>
+      <input v-model="studentId" />
+      <label>密码</label>
+      <input type="password" v-model="password" />
+      <button type="submit">登录</button>
+    </form>
     <p>还没有账号？<router-link to="/register">去注册</router-link></p>
     <p>忘记密码？<router-link to="/forgot-password">用密保问题重置</router-link></p>
     <p>{{ message }}</p>
@@ -28,7 +30,7 @@ async function submit() {
     const response = await login({ studentId: studentId.value, password: password.value })
     localStorage.setItem('campus_wall_token', response.data.token)
     localStorage.setItem('campus_wall_user', JSON.stringify(response.data))
-    router.push('/')
+    await router.push('/')
     window.location.reload()
   } catch (e) {
     message.value = '登录失败，请检查学号和密码'

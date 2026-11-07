@@ -71,6 +71,7 @@ public class AdminController {
             item.put("title", post.getTitle());
             item.put("category", post.getCategory().name());
             item.put("status", post.getStatus().name());
+            item.put("deletedBy", post.getDeletedBy());
             item.put("anonymous", post.isAnonymous());
             item.put("displayName", post.isAnonymous() ? "匿名用户" : post.getAuthor().getNickname());
             item.put("authorPublicId", post.getAuthor().getPublicId());
@@ -84,6 +85,7 @@ public class AdminController {
     public Map<String, Object> deletePost(Authentication authentication, @PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         Post post = postRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post not found"));
         post.setStatus(PostStatus.DELETED);
+        post.setDeletedBy("ADMIN");
         postRepository.save(post);
         adminAuditService.log(authentication.getName(), "DELETE_POST", "POST", id, reasonOf(body));
         return Map.of("ok", true);
@@ -116,11 +118,17 @@ public class AdminController {
     }
 
     // 管理员查看单个用户的学号：必须传理由，这次查看会被记进审计日志，普通列表里看不到学号。
+    // 注销过的用户也能查：注销时学号被改成了原学号加 _delete，这里把后缀去掉再返回，管理员看到的就是原学号。
+    // 学号是 11 位数字，正常学号绝不会以 _delete 结尾，所以去掉后缀不会误伤。
     @GetMapping("/users/{publicId}/identity")
     public Map<String, Object> viewIdentity(Authentication authentication, @PathVariable String publicId, @RequestParam(defaultValue = "未填写理由") String reason) {
         User user = userRepository.findByPublicId(publicId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
         adminAuditService.log(authentication.getName(), "VIEW_IDENTITY", "USER", user.getId(), reason);
-        return Map.of("publicId", user.getPublicId(), "studentId", user.getStudentId());
+        String studentId = user.getStudentId();
+        if (user.getStatus() == UserStatus.DELETED && studentId != null && studentId.endsWith("_delete")) {
+            studentId = studentId.substring(0, studentId.length() - "_delete".length());
+        }
+        return Map.of("publicId", user.getPublicId(), "studentId", studentId);
     }
 
     // 封禁账号：支持临时封禁和永久封禁，临时封禁要传天数，永久封禁的截止时间为空，到期后自动恢复。

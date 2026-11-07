@@ -3,7 +3,7 @@
   <div>
     <h2>{{ greeting }}</h2>
     <div class="card" v-if="latestAnnouncement">
-      <h3>公告：{{ latestAnnouncement.title }}</h3>
+      <h3>📢公告：{{ latestAnnouncement.title }}</h3>
       <p>{{ latestAnnouncement.content }}</p>
       <p>{{ latestAnnouncement.createdAt }}</p>
     </div>

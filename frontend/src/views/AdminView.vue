@@ -6,7 +6,7 @@
     <div class="card">
       <h3>帖子</h3>
       <div v-for="post in posts" :key="post.id">
-        <p>{{ post.title }} · {{ post.displayName }} · {{ post.status }} <button @click="deletePost(post.id)">删除</button></p>
+        <p>{{ post.title }} · {{ post.displayName }} · {{ postStatusText(post) }} <button @click="deletePost(post.id)">删除</button> <button @click="viewIdentity(post.authorPublicId)">查看学号</button></p>
       </div>
     </div>
     <div class="card">
@@ -24,13 +24,13 @@
     <div class="card">
       <h3>用户</h3>
       <div v-for="user in users" :key="user.publicId">
-        <p>{{ user.nickname }} · {{ user.status }} · 封禁到：{{ user.banUntil || '永久或未封禁' }} <button @click="ban(user.publicId, 'TEMPORARY')">临时封禁7天</button> <button @click="ban(user.publicId, 'PERMANENT')">永久封禁</button> <button @click="unban(user.publicId)">解封</button> <button @click="viewIdentity(user.publicId)">查看学号</button></p>
+        <p>{{ user.nickname }} · {{ userStatusText(user) }}<span v-if="user.status === 'BANNED' && user.banUntil">，封禁到：{{ user.banUntil }}</span> <button @click="ban(user.publicId, 'TEMPORARY')">临时封禁7天</button> <button @click="ban(user.publicId, 'PERMANENT')">永久封禁</button> <button @click="unban(user.publicId)">解封</button> <button @click="viewIdentity(user.publicId)">查看学号</button></p>
       </div>
     </div>
     <div class="card">
       <h3>举报</h3>
       <div v-for="report in reports" :key="report.id">
-        <p>{{ report.targetType === 'COMMENT' ? '评论' : '帖子' }}：{{ report.postTitle || report.commentContent }}，原因：{{ report.reason }}，状态：{{ report.status }} <button @click="handle(report.id)">标记已处理</button></p>
+        <p>{{ report.targetType === 'COMMENT' ? '评论' : '帖子' }}：{{ report.postTitle || report.commentContent }}，原因：{{ report.reason }}，状态：{{ reportStatusText(report.status) }} <button @click="handle(report.id)">标记已处理</button></p>
       </div>
     </div>
     <div class="card">
@@ -45,6 +45,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { adminAuditLogs, adminBanUser, adminDeletePost, adminHandleReport, adminPosts, adminReports, adminUnbanUser, adminUsers, adminViewIdentity, createAnnouncement, deleteAnnouncement, listAnnouncements } from '../api/posts.js'
+import { postStatusText, reportStatusText, userStatusText } from '../utils/statusText.js'
 
 const posts = ref([])
 const announcements = ref([])

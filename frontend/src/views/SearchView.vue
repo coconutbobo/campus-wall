@@ -16,7 +16,7 @@
         <option value="LOST">失物招领</option>
         <option value="SECONDHAND">二手交易</option>
         <option value="QA">提问求助</option>
-        <option value="VENT">吐槽</option>
+        <option value="VENT">喝茶闲聊</option>
       </select>
       <button @click="load">搜索</button>
       <label v-if="loggedIn"><input type="checkbox" v-model="subscribedOnly" style="width:auto;" @change="load" /> 只看我订阅的校区</label>

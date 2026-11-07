@@ -12,7 +12,7 @@
       <option value="LOST">失物招领</option>
       <option value="SECONDHAND">二手交易</option>
       <option value="QA">提问求助</option>
-      <option value="VENT">吐槽</option>
+      <option value="VENT">喝茶闲聊</option>
     </select>
     <label>标题</label>
     <input v-model="form.title" />
@@ -101,7 +101,7 @@ async function submit() {
   } catch (e) {
     message.value = (e.response && e.response.data && e.response.data.message)
       ? '发布失败：' + e.response.data.message
-      : '发布失败，请稍后再试'
+      : (e.response ? '发布失败（' + e.response.status + '），请稍后再试' : '发布失败，请稍后再试')
   }
 }
 

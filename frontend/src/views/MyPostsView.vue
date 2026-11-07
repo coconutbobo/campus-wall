@@ -7,7 +7,7 @@
     <div class="card" v-for="post in posts" :key="post.id">
       <h3>{{ post.title }}</h3>
       <p>{{ post.content }}</p>
-      <p>展示：{{ post.anonymous ? '匿名用户' : post.displayName }} · 状态：{{ post.status }}</p>
+      <p>展示：{{ post.anonymous ? '匿名用户' : post.displayName }} · 状态：{{ postStatusText(post) }}</p>
       <button @click="edit(post)">编辑</button>
       <button @click="remove(post.id)">删除</button>
       <button @click="goDetail(post.id)">查看详情</button>
@@ -20,6 +20,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { deleteOwnPost, editPost, myPosts } from '../api/posts.js'
+import { postStatusText } from '../utils/statusText.js'
 
 const router = useRouter()
 const posts = ref([])

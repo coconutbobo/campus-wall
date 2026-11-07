@@ -29,7 +29,7 @@ import { useRouter } from 'vue-router'
 const props = defineProps({ post: { type: Object, required: true } })
 const router = useRouter()
 
-const labels = { LOST: '失物招领', SECONDHAND: '二手交易', QA: '提问求助', VENT: '吐槽' }
+const labels = { LOST: '失物招领', SECONDHAND: '二手交易', QA: '提问求助', VENT: '喝茶闲聊' }
 const categoryLabel = computed(() => labels[props.post.category] || props.post.category)
 
 function goDetail() {

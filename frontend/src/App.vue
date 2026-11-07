@@ -4,7 +4,7 @@
 <template>
   <div class="layout">
     <header class="topbar">
-      <router-link to="/" class="brand">校园墙</router-link>
+      <router-link to="/" class="brand">中国民用航空飞行学院 校园墙</router-link>
       <form class="search-box" @submit.prevent="goSearch">
         <input class="search-input" v-model="searchKeyword" placeholder="搜索帖子" />
         <button type="submit">搜索</button>
@@ -119,10 +119,10 @@ onUnmounted(() => {
   --button-border: #3a3f47;
 }
 body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
-.topbar { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
-.topbar nav { display: flex; gap: 14px; align-items: center; margin-left: auto; }
+.topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar nav { display: flex; gap: 14px; align-items: center; justify-self: end; }
 .topbar a { color: var(--text); text-decoration: none; }
-.brand { font-weight: 700; font-size: 18px; }
+.brand { font-weight: 700; font-size: 18px; justify-self: start; }
 main { max-width: 880px; margin: 0 auto; padding: 20px; }
 /* 每个页面底下的页脚：GitHub 源代码链接和联系邮箱，所有页面共用这一个。 */
 .site-footer { max-width: 880px; margin: 0 auto; padding: 20px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; color: var(--muted); border-top: 1px solid var(--border); font-size: 14px; }
@@ -131,7 +131,7 @@ button { cursor: pointer; background: var(--button-bg); color: var(--text); bord
 input, select, textarea { width: 100%; padding: 8px; margin: 6px 0 12px; box-sizing: border-box; background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 6px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
 /* 顶栏搜索框：放在顶栏中间，输入框宽 500，不走上面 input 那条 100% 宽的通用样式。 */
-.search-box { flex: 1; display: flex; gap: 6px; align-items: center; justify-content: center; }
+.search-box { display: flex; gap: 6px; align-items: center; justify-content: center; }
 .search-input { width: 500px; max-width: 100%; margin: 0; }
 /* 昵称下拉菜单：点昵称才展开，里面的“我的帖子”“我的资料”“我的收藏”是平行的三个入口，退出也在同一层。 */
 .user-menu { position: relative; }
